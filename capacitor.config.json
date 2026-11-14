@@ -1,0 +1,8 @@
+{
+  "appId": "com.playcebo.endlessclimber",
+  "appName": "Endless Climber",
+  "webDir": "web",
+  "android": {
+    "backgroundColor": "#0b0e14"
+  }
+}

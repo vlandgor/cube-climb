@@ -792,7 +792,9 @@ function drawLogo(){
 }
 
 function $(id){ return document.getElementById(id); }
+var curScreen=null;
 function show(id){
+  curScreen=id||null;
   var ss=document.querySelectorAll(".screen");
   for(var i=0;i<ss.length;i++) ss[i].classList.toggle("on", ss[i].id===id);
   $("ui").classList.toggle("on", !!id);
@@ -2006,6 +2008,25 @@ document.addEventListener("visibilitychange",function(){
   if(document.hidden){ pauseRun(); if(AU.ctx) AU.ctx.suspend(); }
   else if(AU.ctx) AU.ctx.resume();                  // silence in your pocket, back on return
 });
+
+// ---- inside the Android / iOS app (Capacitor). in a plain browser this does nothing.
+// the hardware back button steps back one screen; on the main menu it leaves the app.
+function onBack(){
+  if(state==="play") return pauseRun();
+  if(state==="paused") return resumeRun();
+  if(offerOn) return endRun();
+  if(state==="dead") return goMenu();
+  if(curScreen && curScreen!=="sMenu") return goMenu();
+  var App=window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if(App) App.exitApp();
+}
+(function(){
+  var App=window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if(!App || !App.addListener) return;
+  App.addListener("backButton", function(){ sfx("click"); onBack(); });
+  App.addListener("pause", function(){ pauseRun(); if(AU.ctx) AU.ctx.suspend(); });
+  App.addListener("resume", function(){ if(AU.ctx) AU.ctx.resume(); });
+})();
 
 function bind(id,pk,out,fmt,restart,re){
   var el=document.getElementById(id), o=out?document.getElementById(out):null;
