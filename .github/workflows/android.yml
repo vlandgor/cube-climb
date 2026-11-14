@@ -71,7 +71,12 @@ jobs:
           SDK=$("$AAPT" dump badging "$APK" | grep -o "targetSdkVersion:'[^']*'")
           ORIENT=$("$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -o "screenOrientation(0x[0-9a-f]*)=(type 0x10)0x[0-9a-f]*" | head -1)
           case "$ORIENT" in *0x1) ORIENT=portrait;; *) ORIENT="NOT portrait ($ORIENT)";; esac
-          echo "::notice title=APK check::$PKG $SDK, $ORIENT, game bundled, $(du -h "$APK" | cut -f1)"
+          # the Google Mobile Ads SDK crashes the app at launch without its app id
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "com.google.android.gms.ads.APPLICATION_ID" \
+            || { echo "::error title=APK check::AdMob APPLICATION_ID is missing from the manifest"; exit 1; }
+          ADS=$(unzip -p "$APK" assets/public/index.html | grep -o 'rewardedId: *"[^"]*"' | grep -o 'ca-app-pub-[^"]*')
+          case "$ADS" in ca-app-pub-3940256099942544/*) ADS="TEST ads";; *) ADS="real ad unit $ADS";; esac
+          echo "::notice title=APK check::$PKG $SDK, $ORIENT, game bundled, $ADS, $(du -h "$APK" | cut -f1)"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
