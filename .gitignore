@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# OS and editor clutter
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# signing material never belongs in the repo: it lives in GitHub Secrets
+*.keystore
+*.jks
+keystore.properties
+*.p12
+*.mobileprovision
