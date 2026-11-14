@@ -107,6 +107,9 @@
   .pad button.mod{background:#2a1f38;border-color:var(--purple)}
   .pad button.buf{border-color:var(--accent);box-shadow:0 0 0 2px rgba(90,209,168,.35) inset}
   .pad button.off{opacity:.34}
+  /* the air-jump lesson: the button to press glows until you've done it once */
+  @keyframes hintGlow{0%,100%{box-shadow:0 0 0 2px rgba(255,190,90,.3) inset}50%{box-shadow:0 0 0 4px rgba(255,190,90,.95) inset}}
+  .pad button.hint{border-color:var(--amber);animation:hintGlow .7s ease-in-out infinite}
   .pad button i{position:absolute;bottom:5px;left:0;right:0;font-size:10px;font-style:normal;
     color:var(--dim);letter-spacing:.03em}
   #panel{display:none;border-top:1px solid var(--line);background:var(--panel);
@@ -168,6 +171,7 @@
     <div class="row"><label>Steps from calm to calm</label><input type="range" id="pWaveP" min="20" max="200" step="5"><output id="oWaveP"></output></div>
 
     <h3>Unlocks at step</h3>
+    <div class="row"><label>Gap</label><input type="range" id="sGap" min="0" max="400" step="1"><output id="oSGap"></output></div>
     <div class="row"><label>Breakable</label><input type="range" id="sFrag" min="0" max="400" step="1"><output id="oSFrag"></output></div>
     <div class="row"><label>Spring</label><input type="range" id="sSpr" min="0" max="400" step="1"><output id="oSSpr"></output></div>
     <div class="row"><label>Faller (harmless)</label><input type="range" id="sCrit" min="0" max="400" step="1"><output id="oSCrit"></output></div>
@@ -179,6 +183,7 @@
 
     <h3>Peak chances</h3>
     <div class="q">reached a few hundred steps after unlock. per-type sections below set the chance when it unlocks</div>
+    <div class="row"><label>Gap</label><input type="range" id="pGapM" min="0" max="0.3" step="0.01"><output id="oGapM"></output></div>
     <div class="row"><label>Breakable</label><input type="range" id="pFragM" min="0" max="0.4" step="0.01"><output id="oFragM"></output></div>
     <div class="row"><label>Spikes</label><input type="range" id="pSpkM" min="0" max="0.4" step="0.01"><output id="oSpkM"></output></div>
     <div class="row"><label>Down-only</label><input type="range" id="pDnM" min="0" max="0.4" step="0.01"><output id="oDnM"></output></div>
@@ -204,6 +209,9 @@
     <div class="row"><label>Pause between hops</label><input type="range" id="pFoeP" min="120" max="1000" step="20"><output id="oFoeP"></output></div>
 
     <h3>Platform types</h3>
+    <div class="row"><label>Gaps in the stairs</label><input type="checkbox" id="pGap" checked></div>
+    <div class="q">a tile missing mid-staircase — air-jump across. never at a fork, a turn, or next to another gap or blocker. the first gap on each branch is placed so a fall lands you on the stairs below</div>
+    <div class="row"><label>Gap chance when it unlocks</label><input type="range" id="pGapC" min="0" max="0.3" step="0.01"><output id="oGapC"></output></div>
     <div class="row"><label>Fragile tiles</label><input type="checkbox" id="pFrag" checked></div>
     <div class="q">cracks on the first landing, collapses on the second</div>
     <div class="row"><label>Breakable chance when it unlocks</label><input type="range" id="pFragC" min="0" max="0.4" step="0.01"><output id="oFragC"></output></div>
@@ -237,6 +245,8 @@
     <div class="row"><label>Air jump</label><input type="checkbox" id="pDJ" checked></div>
     <div class="q">tap mid-flight to push your landing one more step that way</div>
     <div class="row"><label>Air jumps per landing</label><input type="range" id="pDJn" min="1" max="3" step="1"><output id="oDJn"></output></div>
+    <div class="q">the first gap you reach shows a ghost doing the air jump, until you clear one yourself</div>
+    <div class="row"><button class="btn" id="djReset" style="width:100%">Show the air-jump hint again</button></div>
     <div class="row"><label>Back-hop</label><input type="checkbox" id="pBack2" checked></div>
     <div class="q">an up press pointing away from the stairs hops back two steps down</div>
     <div class="row"><label>Four explicit diagonal buttons</label><input type="checkbox" id="pFour" checked></div>
@@ -386,6 +396,7 @@ var P={
   elev:true, elevMs:420, elevMin:5, elevMax:16, elevCool:1600,
   spring:true, ratchet:true, downOnly:true,
   spikes:true, spikeLinger:600,
+  gaps:true,                       // tiles missing from the stairs: air-jump across
   crit:true, critGap:9000, critSit:1400,
   foes:true, foeTrig:10, foeTele:800, foeHop:450,
   revive:true, reviveMax:1, reviveWindow:5000, reviveGrace:2000,
@@ -393,6 +404,7 @@ var P={
   // ---- progression: each mechanic unlocks at a height (steps), appears once on its
   // own to teach it, then fades in from its intro chance to its peak chance.
   //            unlock      peak by      intro chance      peak chance
+  gapStart:8,    gapFull:300,   gapChance:0.01,    gapMax:0.12,     // first one is a lesson
   fragStart:12,  fragFull:220,  fragChance:0.04,   fragMax:0.16,
   sprStart:22,   sprFull:200,   springChance:0.08, springMin:0.03,   // helper: thins out
   critStart:30,                 critChance:0.08,                     // harmless scare
@@ -458,7 +470,8 @@ function waysUp(cur){
   return (neighbour(cur,-1,1)?1:0)+(neighbour(cur,1,1)?1:0);
 }
 
-// a hole is a cell deliberately emptied — a collapsed tile or a cleared lift shaft.
+// a hole is a cell deliberately emptied — a gap built into the stairs, a collapsed
+// tile or a cleared lift shaft.
 // nothing ever grows back into one, and no two holes may be diagonal neighbours,
 // so there is always a solid platform between any two gaps.
 var DIAG=[[-1,1],[1,1],[-1,-1],[1,-1]];
@@ -504,6 +517,61 @@ function dnOK(p){
     if(t && (t.frag || t.dn || t.spk || t.eseed)) return false;
   }
   return true;
+}
+// any gap or blocker diagonally next to this cell? a lift counts: its stops turn into gaps
+function nearObstacle(gx,gy){
+  for(var i=0;i<4;i++){
+    var nx=gx+DIAG[i][0], ny=gy+DIAG[i][1];
+    if(isHole(nx,ny)) return true;
+    var t=pmap[nx+","+ny];
+    if(t && (t.frag || t.dn || t.spk || t.eseed)) return true;
+  }
+  return false;
+}
+
+// GAPS: a tile left out of a straight run of stairs. the jump into it is allowed (see
+// holeAt); an air jump carries you to the next tile. only a plain mid-staircase tile can
+// become a gap — never a fork, a reunion or a turn — and never next to another gap or
+// blocker, so one air jump always clears it.
+function gapOK(j){
+  if(j.v || j===pl.p || j.turn || j.merge || isTipPlat(j)) return false;
+  if(j.frag || j.spr || j.rat || j.dn || j.spk || j.eseed) return false;
+  if(pmap[j.gx+","+j.gy]!==j) return false;
+  return !nearObstacle(j.gx,j.gy);
+}
+// the first gap teaches the air jump, so missing it mustn't end the run. replay the real
+// jump arc from the tile before the gap and fall on past it: it has to land on solid
+// ground below, well above the death line. tiles below are already built (the lowest
+// tip always grows first). a fragile tile, a lift or spikes don't count as a catch.
+function catchesFall(src,dir,gap){
+  var g=P.grav, S=P.stepY, v0=Math.sqrt(2*g*S*P.apex);
+  var tt=(v0+Math.sqrt(Math.max(0,v0*v0-2*g*S)))/g;
+  var x=src.x, y=src.y, vx=dir*P.stepX/tt, vy=v0, dt=1/240;
+  var floor=src.y-(P.fallSteps-2)*P.stepY;
+  while(y>floor){
+    var py=y; vy-=g*dt; x+=vx*dt; y+=vy*dt;
+    if(vy>=0) continue;
+    for(var i=0;i<plats.length;i++){
+      var q=plats[i];
+      if(q===gap || q.y>py+1 || q.y<y-1 || pmap[q.gx+","+q.gy]!==q) continue;
+      if(py>=q.y-0.5 && y<=q.y && Math.abs(x-q.x)<=P.platW*0.5+2)
+        return (q.y<gap.y && !q.frag && !q.eseed && !q.spk && !q.dn) ? q : null;
+    }
+  }
+  return null;
+}
+// called once the branch has stepped past j in the same direction, so j is known to be
+// a straight-through tile and not a turn.
+function tryGap(t,j,dir){
+  if(!P.gaps || !P.dj) return;                  // without the air jump a gap can't be crossed
+  if(j.gy < P.gapStart*P.pace || j.y <= P.stepY*3) return;
+  var prev=pmap[(j.gx-dir)+","+(j.gy-1)];
+  if(!prev || !gapOK(j)) return;
+  if(P.teach && !t.gapTaught){
+    if(!catchesFall(prev,dir,j)) return;        // not a safe spot: try further up
+    t.gapTaught=true;
+  }else if(Math.random() >= sched(j.gy,P.gapStart,P.gapFull,P.gapChance,P.gapMax,1)) return;
+  removePlat(j);
 }
 
 function reset(){
@@ -911,8 +979,10 @@ function remember(t,p){
 // tile. the merge frees a branch slot, so a fresh fork can appear further up — which keeps
 // forks coming at every height instead of stopping once the branch cap is reached.
 function newTip(plat,dir,seg,trail){
+  // gapTaught: this branch has had its first, safe gap. forks inherit it, so whichever
+  // branch you take, the first gap you meet can't kill you.
   return {plat:plat, dir:dir, segLeft:seg, trail:trail, age:0, mate:null,
-          mergeAt:rnd(P.mergeMin,P.mergeMax)};
+          mergeAt:rnd(P.mergeMin,P.mergeMax), gapTaught:false};
 }
 function findMate(t){
   if(!P.merge || tips.length<2) return null;
@@ -952,6 +1022,7 @@ function extend(t){
         for(var s=-1;s<=1;s+=2){
           var c=addPlat(j.x+s*P.stepX, fy, s);
           var nt=newTip(c, s, rnd(P.segMin,P.segMax)-1, t.trail.slice());
+          nt.gapTaught=t.gapTaught;
           remember(nt,c); tips.push(nt);
         }
         return;
@@ -985,6 +1056,7 @@ function extend(t){
     tips.splice(tips.indexOf(t),1); return;
   }
   t.plat=p; remember(t,p); t.age++;
+  if(!existed && t.dir===dir0) tryGap(t,j,dir0);   // j sits mid-staircase: maybe leave it out
   if(!existed && p.y>P.stepY*3){
     // a mechanic that has just unlocked gets its lesson first: placed once, on its own.
     // after that every type follows its own curve. the spacing rules still forbid two
@@ -1017,7 +1089,7 @@ var LESSONS=[["frag","fragStart","fragile"], ["spr","sprStart","spring"],
 // turn a fresh platform into `kind` if the spacing rules allow it here
 function place(p,kind){
   if(kind==="frag"){ if(!fragOK(p)) return false; p.frag=1; p.hits=0; }
-  else if(kind==="elev") p.eseed=1;
+  else if(kind==="elev"){ if(adjHole(p.gx,p.gy)) return false; p.eseed=1; }  // its home cell becomes a gap
   else if(kind==="spr") p.spr=1;
   else if(kind==="rat") p.rat=1;
   else if(kind==="dn"){ if(!dnOK(p)) return false; p.dn=1; }
@@ -1048,7 +1120,8 @@ function grow(){
     if(isHole(pl.p.gx+d,pl.p.gy+1)) d=-d;
     if(!isHole(pl.p.gx+d,pl.p.gy+1)){
       var np=addPlat(pl.p.x+d*P.stepX, pl.p.y+P.stepY, d);
-      tips.push(newTip(np, d, rnd(P.segMin,P.segMax)-1, [pl.p,np]));
+      var st=newTip(np, d, rnd(P.segMin,P.segMax)-1, [pl.p,np]);
+      st.gapTaught=true; tips.push(st);
     }
   }
   // drop platforms far below the death line (never one a tip or the player needs)
@@ -1371,6 +1444,72 @@ function arcTo(tx,ty){
   pl.vy=v0; pl.vx=dx/t; pl.sq=1;
 }
 
+// ---- the air-jump lesson. until you've cleared a gap with an air jump once (remembered
+// for good), reaching a gap shows a ghost doing the move and a prompt; flying into one
+// says "tap again". any gap counts: built, collapsed or a lift shaft.
+var hintBtn=null, ghostFrom=null, ghostT0=0;
+function gapCell(gx,gy){ return isHole(gx,gy) && !pmap[gx+","+gy]; }   // a parked lift fills it
+function djHint(){
+  if(!P.teach || !P.dj || save.djDone || state!=="play" || ride) return null;
+  if(pl.ground && pl.p){
+    var c=pl.p;
+    if(pl.boost || c.dn) return null;             // a spring jumps it for you; down-only can't
+    for(var d=-1;d<=1;d+=2){
+      var to=pmap[(c.gx+2*d)+","+(c.gy+2)];
+      if(to && gapCell(c.gx+d,c.gy+1)) return {air:false, dir:d, from:c, to:to, btn:d+",true"};
+    }
+    return null;
+  }
+  if(pl.djLeft>0 && pl.tgx!==undefined && gapCell(pl.tgx,pl.tgy)){
+    var nx=pmap[(pl.tgx+pl.ldx)+","+(pl.tgy+pl.ldy)];
+    if(nx) return {air:true, dir:pl.ldx, to:nx, btn:pl.lbtn};
+  }
+  return null;
+}
+// where the demo ghost is, t seconds into its loop: a wait, the jump, an air jump at the
+// top of the arc (the same arcs the real cube flies), a landing beat, then again.
+var G_WAIT=0.45, G_REST=0.55;
+function ghostAt(h,t){
+  var g=P.grav, S=P.stepY, a=h.from;
+  var v0=Math.sqrt(2*g*S*P.apex), T1=(v0+Math.sqrt(Math.max(0,v0*v0-2*g*S)))/g;
+  var vx=h.dir*P.stepX/T1, ta=v0/g;
+  var xa=a.x+vx*ta, ya=a.y+v0*ta-0.5*g*ta*ta;
+  var dx=h.to.x-xa, dy=h.to.y-ya, clear=S*Math.max(0.35,P.apex-1);
+  var v2=Math.sqrt(2*g*(Math.max(dy,0)+clear)), T2=(v2+Math.sqrt(Math.max(0.0001,v2*v2-2*g*dy)))/g;
+  var loop=G_WAIT+ta+T2+G_REST, u=t%loop, r={x:a.x,y:a.y,alpha:1,puff:-1};
+  if(u<G_WAIT){ r.alpha=u/G_WAIT; return r; }
+  u-=G_WAIT;
+  if(u<ta){ r.x=a.x+vx*u; r.y=a.y+v0*u-0.5*g*u*u; return r; }
+  u-=ta; r.puff=u; r.px=xa; r.py=ya;
+  if(u<T2){ r.x=xa+dx/T2*u; r.y=ya+v2*u-0.5*g*u*u; return r; }
+  u-=T2; r.x=h.to.x; r.y=h.to.y; r.alpha=1-u/G_REST; return r;
+}
+// a small amber pill over the landing tile (or over the cube, mid-air), pulsing
+function drawHint(h){
+  var z=zoom(), a=h.air?pl:h.to;
+  var X=W*0.5+(a.x-camX)*z, Y=H*P.camPos-(a.y-camY)*z-(h.air?60:84);   // clear of the ghost landing
+  X=Math.max(100,Math.min(W-100,X)); Y=Math.max(HUD_CLEAR+18,Y);
+  var arrow=h.btn.charAt(0)==="-"?"↖":"↗";
+  var main=h.air?"TAP "+arrow+" AGAIN!":"DOUBLE JUMP", sub=h.air?"":arrow+" then "+arrow+" again mid-air";
+  var k=0.5+0.5*Math.sin(gt*(h.air?14:7));
+  ctx.save(); ctx.translate(X,Y); ctx.scale(1+0.06*k,1+0.06*k);
+  ctx.font="800 "+(h.air?17:15)+"px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  var tw=ctx.measureText(main).width+24, th=h.air?32:28;
+  ctx.shadowColor="rgba(255,190,90,"+(0.35+0.4*k)+")"; ctx.shadowBlur=14;
+  ctx.fillStyle="#ffbe5a"; rr(-tw/2,-th/2,tw,th,th/2); ctx.fill();
+  ctx.shadowBlur=0; ctx.fillStyle="#1a1206"; ctx.fillText(main,0,1);
+  if(sub){
+    ctx.font="600 12px system-ui,sans-serif"; ctx.fillStyle="rgba(255,236,200,.92)";
+    ctx.fillText(sub,0,th/2+12);
+  }
+  ctx.restore();
+}
+function learnedAirJump(){
+  if(save.djDone) return;
+  save.djDone=1; writeSave();
+  toast("Nice! <b>Double jump</b> learned"); sfx("unlock");
+}
+
 function backHop(it){
   var src=pl.p, g=P.grav;
   pl.tgx=src.gx+2*it.dir; pl.tgy=src.gy-2;
@@ -1378,7 +1517,7 @@ function backHop(it){
   var v0=Math.sqrt(2*g*P.stepY*P.apex), dy=-2*P.stepY;    // a full up-jump's height
   var t=(v0+Math.sqrt(v0*v0-2*g*dy))/g;
   pl.vy=v0; pl.vx=it.dir*2*P.stepX/t; pl.ground=false; pl.p=null; pl.sq=1;
-  pl.boost=0; lastIntent=it; buf=null;
+  pl.boost=0; lastIntent=it; buf=null; pl.gapTo=null;
   sfx("back");
 }
 
@@ -1396,7 +1535,7 @@ function jump(it,span){
     t=(v0+Math.sqrt(v0*v0-2*g*dy))/g;
   }
   pl.vy=v0; pl.vx=it.dir*span*P.stepX/t; pl.ground=false; pl.p=null; pl.sq=1;
-  pl.boost=0; lastIntent=it; buf=null;
+  pl.boost=0; lastIntent=it; buf=null; pl.gapTo=null;
   sfx(span>1 ? "launch" : it.up ? "jump" : "drop");
 }
 
@@ -1413,6 +1552,7 @@ function act(it,fromTwo){
       var stx=it.dir, sty=it.up?1:-1, btn=it.dir+","+it.up;
       if(pl.lbtn===btn){ stx=pl.ldx; sty=pl.ldy; }
       var ng=pl.tgx+stx, nh=pl.tgy+sty;
+      pl.gapTo = gapCell(pl.tgx,pl.tgy) ? ng+","+nh : null;   // clearing a gap? (the lesson)
       pl.ldx=stx; pl.ldy=sty; pl.lbtn=btn;
       pl.djLeft--; pl.tgx=ng; pl.tgy=nh;
       puffs.push({x:pl.x,y:pl.y,r:0,life:0.32}); sfx("air");
@@ -1473,7 +1613,7 @@ function syncPad(){
     var has = cur ? !!avail(cur,d,u) : true;       // airborne: every button is live
     var hit=el.classList.contains("hit");
     el.className = (P.dim && !has ? "off " : "") + (hit?"hit ":"") +
-      (buf && buf.dir===d && buf.up===u ? "buf" : "");
+      (buf && buf.dir===d && buf.up===u ? "buf " : "") + (hintBtn===d+","+u ? "hint" : "");
     el.querySelector("i").textContent = cur ? (has?"":"void") : "";
   }
   var L=document.getElementById("bL"), R=document.getElementById("bR");
@@ -1562,6 +1702,8 @@ function step(dt){
         pl.boost = q.spr ? 1 : 0;
         sfx(q.spr ? "charge" : "land");
         noteLanding(q);
+        if(pl.gapTo===q.gx+","+q.gy) learnedAirJump();
+        pl.gapTo=null;
         pl.djLeft = P.dj ? P.djMax : 0;
         touchFragile(q);
         tryRide(q);                       // an elevator always rides; it outranks a buffered tap
@@ -1835,6 +1977,21 @@ function draw(){
     ctx.beginPath(); ctx.ellipse(sx(pf.x),sy(pf.y)-6,pf.r,pf.r*0.45,0,0,6.3); ctx.stroke();
   }
 
+  // the air-jump lesson: which button glows, and a ghost doing the move from your tile
+  var hint=djHint(), hb=hint?hint.btn:null;
+  if(hb!==hintBtn){ hintBtn=hb; syncPad(); }
+  if(hint && !hint.air){
+    if(ghostFrom!==hint.from){ ghostFrom=hint.from; ghostT0=gt; }
+    var gs=Math.min(P.platW*0.5,26), gp=ghostAt(hint,gt-ghostT0);
+    if(gp.puff>=0 && gp.puff<0.32){                // the tap: same ring as a real air jump
+      ctx.strokeStyle="rgba(255,190,90,"+(0.8*(1-gp.puff/0.32))+")"; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.ellipse(sx(gp.px),sy(gp.py)-6,P.stepX*2.6*gp.puff,P.stepX*1.17*gp.puff,0,0,6.3); ctx.stroke();
+    }
+    ctx.globalAlpha=0.7*Math.max(0,Math.min(1,gp.alpha));
+    paintCube(ctx,"ghost",sx(gp.x),sy(gp.y),gs,gs,gt,hint.dir);
+    ctx.globalAlpha=1;
+  }else ghostFrom=null;
+
   var s=Math.min(P.platW*0.5,26), sq=Math.max(0,pl.sq);
   var w=s*(1+0.28*sq), h=s*(1-0.28*sq);
   var shake = reject>0 ? Math.sin(reject*90)*5 : 0;
@@ -1868,6 +2025,7 @@ function draw(){
   ctx.globalAlpha=1;
 
   ctx.restore();                                 // back to screen space
+  if(hint) drawHint(hint);
   if(flash>0){ ctx.fillStyle="rgba(255,107,107,"+(flash*0.3)+")"; ctx.fillRect(0,0,W,H); flash-=0.03; }
 
   document.getElementById("hH").textContent=Math.max(0,Math.round(pl.y/P.stepY));
@@ -2136,6 +2294,8 @@ var pct=function(v){return Math.round(v*100)+"%";};
 bind("pTeach","teach"); bind("pWave","waves");
 bind("pPace","pace","oPace",function(v){return (+v).toFixed(2)+"×";});
 bind("pWaveA","waveAmp","oWaveA",pct); bind("pWaveP","wavePeriod","oWaveP");
+bind("pGap","gaps"); bind("pGapC","gapChance","oGapC",pct);
+bind("sGap","gapStart","oSGap"); bind("pGapM","gapMax","oGapM",pct);
 bind("sFrag","fragStart","oSFrag"); bind("sSpr","sprStart","oSSpr"); bind("sCrit","critStart","oSCrit");
 bind("sRat","ratStart","oSRat"); bind("sSpk","spkStart","oSSpk"); bind("sDn","dnStart","oSDn");
 bind("sElev","elevStart","oSElev"); bind("sFoe","foeStart","oSFoe");
@@ -2155,6 +2315,9 @@ bind("pSpkC","spikeChance","oSpkC",function(v){return Math.round(v*100)+"%";});
 bind("pSpkL","spikeLinger","oSpkL",function(v){return v+"ms";});
 bind("pDnC","downChance","oDnC",function(v){return Math.round(v*100)+"%";});
 bind("pDJ","dj"); bind("pDJn","djMax","oDJn"); bind("pBack2","backflip");
+document.getElementById("djReset").addEventListener("click",function(){
+  delete save.djDone; writeSave(); this.textContent="Hint will show at the next gap";
+});
 bind("pFour","four");
 bind("pBuf","buffer","oBuf",function(v){return v+"ms";});
 bind("pVoid","ignoreVoid"); bind("pDim","dim"); bind("pPrev","preview");
