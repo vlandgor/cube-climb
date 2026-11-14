@@ -1,0 +1,19 @@
+{
+  "name": "endless-climber",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Endless Climber by Playcebo Games, wrapped for Android and iOS with Capacitor",
+  "scripts": {
+    "sync": "cap sync",
+    "android:debug": "cap sync android && cd android && ./gradlew assembleDebug",
+    "android:release": "cap sync android && cd android && ./gradlew bundleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}
