@@ -321,6 +321,8 @@
       <div class="setrow"><div>Music<small>follows the danger as you climb</small></div><input type="checkbox" id="optMus"></div>
       <div class="setrow"><div>Tuning panel<small>shows the ⚙ button during play</small></div>
         <input type="checkbox" id="optTune"></div>
+      <div class="setrow" id="rowAdPrivacy" style="display:none"><div>Ad privacy choices<small>change how ads use your data</small></div>
+        <button class="mini" id="bAdPrivacy">Open</button></div>
       <div class="setrow"><div>Best height<small id="setBest"></small></div>
         <button class="mini" id="bResetBest">Reset</button></div>
       <div class="stack"><button class="ghost" id="bSetBack">Back</button></div>
@@ -351,7 +353,7 @@
       <h2>Keep climbing?</h2>
       <div class="bestline" id="revInfo"></div>
       <div class="stack">
-        <button class="btn big revive" id="bRevive">Revive<span class="bar"><i id="revBar"></i></span></button>
+        <button class="btn big revive" id="bRevive"><span id="revLabel">Revive</span><span class="bar"><i id="revBar"></i></span></button>
         <button class="ghost" id="bNoRev">No thanks</button>
       </div>
       <div class="hint">You'll be back on the last fork you passed.</div>
@@ -811,6 +813,7 @@ function startRun(){
 function beginRun(){
   reset(); runPrevBest=save.best||0; revivesLeft=P.reviveMax; reviveGrace=0;
   runUnlocks=[]; trail=[];
+  adsPreload();                          // have the revive ad ready before it's needed
   state="play"; show(null);
 }
 
@@ -838,6 +841,7 @@ function offerRevive(){
   offerOn=true; offerUntil=now+P.reviveWindow/1000;
   $("revWhy").textContent=deathWhy;
   $("revInfo").innerHTML="You reached <b>"+best+"</b> steps";
+  $("revLabel").textContent = (adMob() && ADS.ready) ? "\u25B6 Watch ad to revive" : "Revive";
   show("sRevive");
 }
 function doRevive(){
@@ -1909,7 +1913,7 @@ function loop(ts){
   var raw=Math.min(0.05,(ts-last)/1000); last=ts;
   now+=raw; fdt=raw;
   if(buf && now-buf.t > P.buffer/1000){ buf=null; syncPad(); }
-  if(offerOn){                                   // revive window drains, then the run ends
+  if(offerOn && !ADS.showing){                   // revive window drains (frozen during an ad)
     var left=Math.max(0,(offerUntil-now)/(P.reviveWindow/1000));
     $("revBar").style.width=(left*100)+"%";
     if(left<=0) endRun();
@@ -1960,7 +1964,7 @@ window.addEventListener("keydown",function(e){
     if(k==="arrowright"||k==="d"){down2(1);e.preventDefault();}
   }
   if(k==="escape"){ if(offerOn) endRun(); else if(state==="play") pauseRun(); else if(state==="paused") resumeRun(); }
-  if(k==="enter"){ if(offerOn) doRevive(); else if(state==="menu"||state==="dead") startRun(); else if(state==="paused") resumeRun(); }
+  if(k==="enter"){ if(offerOn) onReviveTap(); else if(state==="menu"||state==="dead") startRun(); else if(state==="paused") resumeRun(); }
   if(k==="r" && (state==="play"||state==="paused"||state==="dead")) startRun();
 });
 window.addEventListener("keyup",function(e){
@@ -2001,7 +2005,8 @@ tap("bRestart", startRun);
 tap("bMenu1", goMenu);
 tap("bAgain", startRun);
 tap("bMenu2", goMenu);
-tap("bRevive", doRevive);
+tap("bRevive", onReviveTap);
+tap("bAdPrivacy", function(){ var A=adMob(); if(A) A.showPrivacyOptionsForm().catch(function(){}); });
 tap("bNoRev", function(){ if(offerOn) endRun(); });
 // leaving the app mid-run pauses it
 document.addEventListener("visibilitychange",function(){
@@ -2009,9 +2014,77 @@ document.addEventListener("visibilitychange",function(){
   else if(AU.ctx) AU.ctx.resume();                  // silence in your pocket, back on return
 });
 
+// ---------------------------------------------------------------------------
+// ADS — a rewarded ad on the Revive button, inside the Android/iOS app only. in a
+// browser there is no ad and revive stays free. tapping Revive is the opt-in AdMob
+// requires for rewarded ads.
+// ---------------------------------------------------------------------------
+var ADS={
+  // Google's public TEST rewarded unit: always serves a "Test Ad". replace with your own
+  // ad unit id from the AdMob console, and set testing:false, before releasing.
+  rewardedId: "ca-app-pub-3940256099942544/5224354917",
+  testing: true,
+  ready:false, loading:false, showing:false, earned:false, canRequest:false,
+  privacyRequired:false, left:0
+};
+function adMob(){
+  var C=window.Capacitor;
+  if(!C || !C.isNativePlatform || !C.isNativePlatform() || !C.Plugins) return null;
+  return C.Plugins.AdMob || null;
+}
+function adsPreload(){
+  var A=adMob();
+  if(!A || !ADS.canRequest || ADS.ready || ADS.loading) return;
+  ADS.loading=true;
+  A.prepareRewardVideoAd({adId:ADS.rewardedId, isTesting:ADS.testing})
+    .then(function(){ ADS.ready=true; })
+    .catch(function(){ ADS.ready=false; })          // no fill / offline: revive stays free
+    .then(function(){ ADS.loading=false; });
+}
+function adsInit(){
+  var A=adMob(); if(!A) return;
+  A.addListener("onRewardedVideoAdReward", function(){ ADS.earned=true; });
+  A.addListener("onRewardedVideoAdDismissed", function(){
+    setTimeout(adFinished, 250);                     // the reward event can arrive just after
+  });
+  A.addListener("onRewardedVideoAdFailedToShow", function(){ ADS.earned=true; adFinished(); });
+  A.initialize({})
+    .then(function(){ return A.requestConsentInfo(); })
+    .then(function(info){                            // GDPR / regional consent, first launch
+      if(info && info.isConsentFormAvailable && info.status==="REQUIRED") return A.showConsentForm();
+      return info;
+    })
+    .then(function(info){
+      ADS.canRequest = !info || info.canRequestAds!==false;
+      ADS.privacyRequired = !!info && info.privacyOptionsRequirementStatus==="REQUIRED";
+      $("rowAdPrivacy").style.display = ADS.privacyRequired ? "" : "none";
+      adsPreload();
+    })
+    .catch(function(){ ADS.canRequest=true; adsPreload(); });
+}
+// the Revive button: an ad if one is ready, otherwise a free revive
+function onReviveTap(){
+  if(!offerOn || ADS.showing) return;
+  var A=adMob();
+  if(!A || !ADS.ready){ doRevive(); adsPreload(); return; }
+  ADS.showing=true; ADS.earned=false; ADS.ready=false;
+  ADS.left=Math.max(0, offerUntil-now);             // the revive timer freezes during the ad
+  if(AU.ctx) AU.ctx.suspend();
+  A.showRewardVideoAd().then(function(){ ADS.earned=true; }).catch(function(){});
+}
+function adFinished(){
+  if(!ADS.showing) return;
+  ADS.showing=false;
+  if(AU.ctx) AU.ctx.resume();
+  if(ADS.earned) doRevive();
+  else if(offerOn) offerUntil = now + Math.max(ADS.left, 2);   // closed early: decide again
+  adsPreload();                                      // ready for the next run
+}
+
 // ---- inside the Android / iOS app (Capacitor). in a plain browser this does nothing.
 // the hardware back button steps back one screen; on the main menu it leaves the app.
 function onBack(){
+  if(ADS.showing) return;                          // the ad handles its own back button
   if(state==="play") return pauseRun();
   if(state==="paused") return resumeRun();
   if(offerOn) return endRun();
@@ -2107,6 +2180,7 @@ bind("pCols","viewCols","oCols",function(v){return v?(+v).toFixed(1):"off";});
 bind("pCamX","camX");
 
 resize(); applyTuning(); goMenu(); requestAnimationFrame(loop);
+adsInit();                               // app only: consent, then preload the revive ad
 })();
 </script>
 </body>
