@@ -60,6 +60,19 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      # fail the build if the APK is missing the game or has the wrong settings
+      - name: Check the APK
+        run: |
+          APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          unzip -l "$APK" | grep -q "assets/public/index.html" || { echo "::error title=APK check::The game is missing from the APK"; exit 1; }
+          unzip -p "$APK" assets/public/index.html | grep -q "Endless" || { echo "::error title=APK check::Bundled index.html is not the game"; exit 1; }
+          PKG=$("$AAPT" dump badging "$APK" | grep -o "package: name='[^']*' versionCode='[^']*' versionName='[^']*'")
+          SDK=$("$AAPT" dump badging "$APK" | grep -o "targetSdkVersion:'[^']*'")
+          ORIENT=$("$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -o "screenOrientation(0x[0-9a-f]*)=(type 0x10)0x[0-9a-f]*" | head -1)
+          case "$ORIENT" in *0x1) ORIENT=portrait;; *) ORIENT="NOT portrait ($ORIENT)";; esac
+          echo "::notice title=APK check::$PKG $SDK, $ORIENT, game bundled, $(du -h "$APK" | cut -f1)"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
