@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Endless Climber — Prototype</title>
 <style>
   :root{
@@ -16,13 +16,13 @@
   #wrap{position:relative;display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto}
   #stage{position:relative;flex:1;min-height:0}
   canvas{display:block;width:100%;height:100%}
-  #hud{position:absolute;inset:8px 8px auto 8px;display:flex;gap:8px;align-items:flex-start;
+  #hud{position:absolute;inset:calc(8px + env(safe-area-inset-top)) 8px auto 8px;display:flex;gap:8px;align-items:flex-start;
     pointer-events:none;font-variant-numeric:tabular-nums}
   .chip{background:rgba(19,24,36,.82);border:1px solid var(--line);border-radius:10px;
     padding:6px 9px;backdrop-filter:blur(6px)}
   .chip b{font-size:17px;display:block;line-height:1.1}
   .chip span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
-  .hbtn{position:absolute;top:8px;pointer-events:auto;background:rgba(19,24,36,.82);
+  .hbtn{position:absolute;top:calc(8px + env(safe-area-inset-top));pointer-events:auto;background:rgba(19,24,36,.82);
     border:1px solid var(--line);color:var(--txt);border-radius:10px;width:38px;height:38px;
     font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
   #pauseBtn{right:8px}
@@ -85,7 +85,7 @@
   .skincard.locked{opacity:.55}
   #logoCv{width:120px;height:104px}
   .unlockline{font-size:13px;color:var(--amber);font-weight:700}
-  #toast{position:absolute;left:50%;top:58px;transform:translate(-50%,-14px);opacity:0;pointer-events:none;
+  #toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translate(-50%,-14px);opacity:0;pointer-events:none;
     background:rgba(19,24,36,.94);border:1px solid var(--amber);color:var(--txt);border-radius:12px;
     padding:8px 14px;font-size:13px;font-weight:700;white-space:nowrap;transition:opacity .25s,transform .25s;z-index:5}
   #toast.on{opacity:1;transform:translate(-50%,0)}
