@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Endless Climber — Prototype</title>
+<title>Cube Climb — Prototype</title>
 <style>
   :root{
     --bg:#0b0e14; --panel:#131824; --line:#232b3d; --txt:#e6ebf5; --dim:#8b96ad;
@@ -310,7 +310,7 @@
     <!-- main menu -->
     <section class="screen" id="sMenu">
       <canvas id="logoCv" width="240" height="208"></canvas>
-      <div class="title" style="margin-top:2px">Endless<br>Climber<small>prototype</small></div>
+      <div class="title" style="margin-top:2px">Cube<br>Climb<small>prototype</small></div>
       <div class="bestline" id="menuBest"></div>
       <div class="stack">
         <button class="btn big" id="bPlay">Play</button>
@@ -603,7 +603,7 @@ function reset(){
 // MENUS & RUN FLOW. states: "menu" → "play" ⇄ "paused" → "dead" → "play" | "menu".
 // the world keeps drawing behind every menu; it only simulates while playing.
 // ---------------------------------------------------------------------------
-var SAVE_KEY="endlessClimber.v1", save=loadSave();
+var SAVE_KEY="cubeClimb.v1", save=loadSave();
 function loadSave(){
   try{ var s=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}"); return (s&&typeof s==="object")?s:{}; }
   catch(e){ return {}; }                // storage can be blocked or empty: play on without it

@@ -1,4 +1,4 @@
-# Endless Climber
+# Cube Climb
 
 A fast 2D endless climber by Playcebo Games. Climb a branching staircase with four
 diagonal buttons, air-jump over gaps and hazards, and see how high you can get.
@@ -21,14 +21,14 @@ Q ↖ · E ↗ · A ↙ · D ↘, Esc pauses, and R restarts.
 ## Android
 
 The game is wrapped for Android with [Capacitor](https://capacitorjs.com). `android/` is
-the native project; `capacitor.config.json` holds the app ID (`com.playcebo.endlessclimber`)
+the native project; `capacitor.config.json` holds the app ID (`com.playcebo.cubeclimb`)
 and name.
 
 **Builds run on GitHub.** Every push and pull request runs the *Android build* workflow
 (`.github/workflows/android.yml`). Download the results from the run's **Artifacts**:
 
-- `endless-climber-debug-…`: a debug APK you can install straight onto a phone.
-- `endless-climber-release-…`: a signed AAB for Google Play, plus a signed APK. This
+- `cube-climb-debug-…`: a debug APK you can install straight onto a phone.
+- `cube-climb-release-…`: a signed AAB for Google Play, plus a signed APK. This
   appears only once the signing secrets below are set.
 
 To build a specific version, open **Actions → Android build → Run workflow** and enter a
