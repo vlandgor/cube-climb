@@ -1,4 +1,4 @@
-# Endless Climber — Gameplay Design Document
+# Cube Climb — Gameplay Design Document
 
 **Version 0.2 — 10 Nov 2026**
 Status: Playable prototype. Core movement, input and generation validated.

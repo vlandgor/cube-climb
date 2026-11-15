@@ -7,10 +7,10 @@ def env = { String name, String fallback -> System.getenv(name) ?: fallback }
 def releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")
 
 android {
-    namespace = "com.playcebo.endlessclimber"
+    namespace = "com.playcebo.cubeclimb"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.playcebo.endlessclimber"
+        applicationId "com.playcebo.cubeclimb"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode Integer.parseInt(env("VERSION_CODE", "1"))

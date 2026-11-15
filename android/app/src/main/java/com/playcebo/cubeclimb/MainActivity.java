@@ -1,4 +1,4 @@
-package com.playcebo.endlessclimber;
+package com.playcebo.cubeclimb;
 
 import android.os.Build;
 import android.os.Bundle;

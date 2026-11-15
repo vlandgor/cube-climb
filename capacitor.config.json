@@ -1,6 +1,6 @@
 {
-  "appId": "com.playcebo.endlessclimber",
-  "appName": "Endless Climber",
+  "appId": "com.playcebo.cubeclimb",
+  "appName": "Cube Climb",
   "webDir": "web",
   "android": {
     "backgroundColor": "#0b0e14"
