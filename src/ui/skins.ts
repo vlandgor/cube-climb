@@ -3,8 +3,12 @@ import { sfx } from "../audio/audio";
 import { SKINS, curSkin, paintCube, rrc, unlocked } from "../render/skins";
 import { save, writeSave } from "../storage/save";
 import { $, show } from "./dom";
+import { t } from "../i18n";
+import type { Key } from "../i18n/format";
 
 // SKINS UI — unlock toasts, the skins grid and the animated menu logo.
+function skinName(id: string){ return t(("skin."+id) as Key); }
+
 // unlocks happen mid-run the moment you pass the height
 let toastT: ReturnType<typeof setTimeout> | null=null;
 export function toast(html: string){
@@ -16,8 +20,8 @@ export function checkUnlocks(){
   for(var i=0;i<SKINS.length;i++){
     var s=SKINS[i];
     if(s.req>0 && GS.best>=s.req && !save.unl[s.id]){
-      save.unl[s.id]=1; writeSave(); GS.runUnlocks.push(s.name);
-      toast("New skin unlocked: <b>"+s.name+"</b>"); sfx("unlock");
+      save.unl[s.id]=1; writeSave(); GS.runUnlocks.push(s.id);
+      toast(t("toast.skin",{name:skinName(s.id)})); sfx("unlock");
     }
   }
 }
@@ -35,15 +39,15 @@ export function openSkins(){
     else{ c.fillStyle="#252c3d"; rrc(c,13,18,30,30,6); c.fill();
       c.fillStyle="#5b6680"; c.font="bold 15px system-ui,sans-serif"; c.textAlign="center"; c.fillText("?",28,39); }
     b.appendChild(cv);
-    var nm=document.createElement("div"); nm.textContent=open?s.name:"???"; b.appendChild(nm);
+    var nm=document.createElement("div"); nm.textContent=open?skinName(s.id):t("skins.unknown"); b.appendChild(nm);
     var sub=document.createElement("small");
-    sub.textContent = s===cur ? "Selected" : open ? "Tap to wear" : "Reach "+s.req;
+    sub.textContent = s===cur ? t("skins.selected") : open ? t("skins.wear") : t("skins.reach",{n:s.req});
     b.appendChild(sub);
     b.addEventListener("click",function(e){ e.preventDefault(); if(!open){ sfx("reject"); return; }
       save.skin=s.id; writeSave(); sfx("click"); openSkins(); });
     grid.appendChild(b);
   });
-  $("skinsInfo").innerHTML="<b>"+n+"</b> of "+SKINS.length+" unlocked";
+  $("skinsInfo").innerHTML=t("skins.count",{n:n, total:SKINS.length});
   show("sSkins");
 }
 // the menu's logo is the cube you're wearing, bobbing over a landing tile

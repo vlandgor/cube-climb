@@ -1,5 +1,6 @@
 import { GS } from "../core/state";
 import { $ } from "./dom";
+import { t } from "../i18n";
 import { P } from "../config/params";
 import { act, avail, down2, held, up2 } from "../game/movement";
 import { neighbour } from "../world/grid";
@@ -16,7 +17,7 @@ export function syncPad(){
     var hit=el.classList.contains("hit");
     el.className = (P.dim && !has ? "off " : "") + (hit?"hit ":"") +
       (GS.buf && GS.buf.dir===d && GS.buf.up===u ? "buf " : "") + (GS.hintBtn===d+","+u ? "hint" : "");
-    el.querySelector("i")!.textContent = cur ? (has?"":"void") : "";
+    el.querySelector("i")!.textContent = cur ? (has?"":t("pad.none")) : "";
   }
   var L=$("bL"), R=$("bR");
   var cls=function(me: number,other: number){

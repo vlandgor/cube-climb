@@ -5,21 +5,21 @@ import { save } from "../storage/save";
 // walker's red or the faller's cream, so a cube is never misread at speed.
 // ---------------------------------------------------------------------------
 export interface Skin {
-  id: string; name: string;
+  id: string;           // also its name key: skin.<id>
   req: number;          // height to reach in one run to unlock it
   trail?: string;       // afterimage while airborne: ghost | stars | rainbow
   land?: string;        // "r,g,b" sparkle on landing
 }
 export const SKINS: Skin[]=[
-  {id:"classic", name:"Classic", req:0},
-  {id:"shades",  name:"Shades",  req:25},
-  {id:"grape",   name:"Grape",   req:50},
-  {id:"ghost",   name:"Ghost",   req:100,  trail:"ghost"},
-  {id:"robot",   name:"Robot",   req:150},
-  {id:"gold",    name:"Gold",    req:250,  land:"255,214,96"},
-  {id:"galaxy",  name:"Galaxy",  req:400,  trail:"stars"},
-  {id:"rainbow", name:"Rainbow", req:600,  trail:"rainbow"},
-  {id:"diamond", name:"Diamond", req:1000, land:"190,240,255"}
+  {id:"classic", req:0},
+  {id:"shades",  req:25},
+  {id:"grape",   req:50},
+  {id:"ghost",   req:100,  trail:"ghost"},
+  {id:"robot",   req:150},
+  {id:"gold",    req:250,  land:"255,214,96"},
+  {id:"galaxy",  req:400,  trail:"stars"},
+  {id:"rainbow", req:600,  trail:"rainbow"},
+  {id:"diamond", req:1000, land:"190,240,255"}
 ];
 function skinById(id: string){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
 export function unlocked(s: Skin){ return s.req===0 || !!(save.unl && save.unl[s.id]); }

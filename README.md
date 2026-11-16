@@ -67,6 +67,27 @@ The keystore never goes in the repository; `.gitignore` blocks it.
 
 **Building locally** needs Node 22 and JDK 21: `npm ci`, then `npm run android:debug`.
 
+## Languages
+
+15 languages: English, Spanish, French, German, Italian, Portuguese (Brazil), Polish,
+Turkish, Ukrainian, Russian, Arabic (right-to-left), Hindi, Japanese, Korean and
+Simplified Chinese. The game follows the device language; Settings → Language overrides it.
+
+- Strings live in `src/i18n/locales/`. `en.ts` is the source of truth; every other file
+  must have the same keys, and `npm test` checks that each keeps the `{placeholders}`
+  and `<b>` tags and has every plural form its language needs.
+- Page text is marked `data-i18n="key"`; code calls `t("key", { n })`.
+- English ships in the main bundle; each other language is a ~1.5 KB chunk loaded on demand.
+- To add a language: copy `en.ts`, translate, add it to `LOCALES` in `src/i18n/index.ts`.
+
+The tuning panel is a developer tool and stays in English.
+
+## Releasing
+
+Builds are named after the game and version: `cube-climb-<version>-<code>-release.aab`
+(upload this one to Play), `…-release.apk` and `…-debug.apk`. The version name comes from
+`package.json` (or the *Run workflow* input) and the code from the run number.
+
 ## Ads
 
 The Revive button shows an AdMob **rewarded ad** inside the app (plugin

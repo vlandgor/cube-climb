@@ -37,6 +37,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # translations: same keys, placeholders, tags and plural forms in every language
+      - name: Test
+        run: npm test
+
       # strict type-check, then the Vite production build into dist/
       - name: Type-check and build the game
         run: npm run build

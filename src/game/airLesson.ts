@@ -7,6 +7,7 @@ import { rr } from "../render/draw";
 import { save, writeSave } from "../storage/save";
 import { toast } from "../ui/skins";
 import { isHole } from "../world/grid";
+import { t } from "../i18n";
 import type { Plat } from "../core/types";
 
 // ---- the air-jump lesson. until you've cleared a gap with an air jump once (remembered
@@ -62,13 +63,15 @@ export function ghostAt(h: Hint, t: number){
 export function drawHint(h: Hint){
   var z=zoom(), a=h.air?GS.pl:h.to;
   var X=GS.W*0.5+(a.x-GS.camX)*z, Y=GS.H*P.camPos-(a.y-GS.camY)*z-(h.air?60:84);   // clear of the ghost landing
-  X=Math.max(100,Math.min(GS.W-100,X)); Y=Math.max(HUD_CLEAR+18,Y);
   var arrow=h.btn.charAt(0)==="-"?"↖":"↗";
-  var main=h.air?"TAP "+arrow+" AGAIN!":"DOUBLE JUMP", sub=h.air?"":arrow+" then "+arrow+" again mid-air";
+  var main=h.air?t("lesson.again",{a:arrow}):t("lesson.title"), sub=h.air?"":t("lesson.sub",{a:arrow});
   var k=0.5+0.5*Math.sin(GS.gt*(h.air?14:7));
-  ctx.save(); ctx.translate(X,Y); ctx.scale(1+0.06*k,1+0.06*k);
+  ctx.save();
   ctx.font="800 "+(h.air?17:15)+"px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
   var tw=ctx.measureText(main).width+24, th=h.air?32:28;
+  var edge=Math.max(100,tw/2+12);                  // keep the whole pill on screen, whatever the language
+  X=Math.max(edge,Math.min(GS.W-edge,X)); Y=Math.max(HUD_CLEAR+18,Y);
+  ctx.translate(X,Y); ctx.scale(1+0.06*k,1+0.06*k);
   ctx.shadowColor="rgba(255,190,90,"+(0.35+0.4*k)+")"; ctx.shadowBlur=14;
   ctx.fillStyle="#ffbe5a"; rr(-tw/2,-th/2,tw,th,th/2); ctx.fill();
   ctx.shadowBlur=0; ctx.fillStyle="#1a1206"; ctx.fillText(main,0,1);
@@ -81,5 +84,5 @@ export function drawHint(h: Hint){
 export function learnedAirJump(){
   if(save.djDone) return;
   save.djDone=1; writeSave();
-  toast("Nice! <b>Double jump</b> learned"); sfx("unlock");
+  toast(t("toast.airJump")); sfx("unlock");
 }

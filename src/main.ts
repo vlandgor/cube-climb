@@ -14,6 +14,8 @@ import { initMenus } from "./ui/menus";
 import { initPad, syncPad } from "./ui/pad";
 import { drawLogo } from "./ui/skins";
 import { initTuning } from "./ui/tuning";
+import { save } from "./storage/save";
+import { detect, setLocale } from "./i18n";
 
 // boot: wire every input and screen, then run the frame loop. simulation steps at a fixed
 // 1/240 s; drawing happens once per animation frame.
@@ -37,5 +39,9 @@ function loop(ts: number){
 }
 
 initAudio(); initCanvas(); initPad(); initKeyboard(); initMenus(); initNative(); initTuning();
-resize(); applyTuning(); goMenu(); requestAnimationFrame(loop);
-adsInit();                               // app only: consent, then preload the revive ad
+resize(); applyTuning();
+// the language decides every menu string, so it is loaded before the first screen shows
+setLocale(save.lang||detect()).then(function(){
+  goMenu(); requestAnimationFrame(loop);
+  adsInit();                             // app only: consent, then preload the revive ad
+});

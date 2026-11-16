@@ -80,4 +80,5 @@ export interface Save {
   sfx?: number;
   music?: number;
   djDone?: number;
+  lang?: string;        // chosen language code; absent = follow the device
 }
