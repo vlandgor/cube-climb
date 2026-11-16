@@ -34,8 +34,12 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install Capacitor
+      - name: Install dependencies
         run: npm ci
+
+      # strict type-check, then the Vite production build into dist/
+      - name: Type-check and build the game
+        run: npm run build
 
       - name: Copy the game into the Android project
         run: npx cap sync android
@@ -74,7 +78,8 @@ jobs:
           # the Google Mobile Ads SDK crashes the app at launch without its app id
           "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "com.google.android.gms.ads.APPLICATION_ID" \
             || { echo "::error title=APK check::AdMob APPLICATION_ID is missing from the manifest"; exit 1; }
-          ADS=$(unzip -p "$APK" assets/public/index.html | grep -o 'rewardedId: *"[^"]*"' | grep -o 'ca-app-pub-[^"]*')
+          unzip -l "$APK" | grep -q "assets/public/assets/index-.*\.js" || { echo "::error title=APK check::The game bundle is missing from the APK"; exit 1; }
+          ADS=$(unzip -p "$APK" 'assets/public/assets/*.js' | grep -o 'rewardedId: *"[^"]*"' | grep -o 'ca-app-pub-[^"]*')
           case "$ADS" in ca-app-pub-3940256099942544/*) ADS="TEST ads";; *) ADS="real ad unit $ADS";; esac
           echo "::notice title=APK check::$PKG $SDK, $ORIENT, game bundled, $ADS, $(du -h "$APK" | cut -f1)"
 

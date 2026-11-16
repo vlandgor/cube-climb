@@ -1,7 +1,7 @@
 {
   "appId": "com.playcebo.cubeclimb",
   "appName": "Cube Climb",
-  "webDir": "web",
+  "webDir": "dist",
   "android": {
     "backgroundColor": "#0b0e14"
   },

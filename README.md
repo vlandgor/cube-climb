@@ -3,26 +3,46 @@
 A fast 2D endless climber by Playcebo Games. Climb a branching staircase with four
 diagonal buttons, air-jump over gaps and hazards, and see how high you can get.
 
-The whole game is a single self-contained HTML file. No engine and no build step for
-the game itself: graphics and audio are drawn and synthesised in code.
+Written in TypeScript and built with Vite. No engine: graphics are drawn on a 2D canvas
+and audio is synthesised with Web Audio, all in code.
+
+## Running it
+
+Needs Node 22.
+
+```
+npm ci
+npm run dev        # local server with hot reload
+npm run build      # strict type-check, then a production build into dist/
+npm run preview    # serve the production build
+```
+
+On a desktop, the keys are Q ↖ · E ↗ · A ↙ · D ↘, Esc pauses, and R restarts.
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
-| `web/index.html` | The game. Open it in a browser to play. |
+| `index.html` | The page: canvas, HUD, pad, tuning panel and menu screens. |
+| `src/main.ts` | Boot and the frame loop (fixed 1/240 s simulation steps, one draw per frame). |
+| `src/config/params.ts` | `P`, every tunable. The tuning panel edits it live. |
+| `src/core/` | Shared run state (`GS`), data types, math helpers. |
+| `src/world/` | The grid, structure generation, difficulty curves, special tiles. |
+| `src/entities/` | The walker (enemy) and the faller (harmless). |
+| `src/game/` | Movement and input rules, the simulation step, run flow and revive, the air-jump lesson. |
+| `src/render/` | Canvas setup, camera, skins, drawing a frame. |
+| `src/ui/` | Menus, pad buttons, skins screen, tuning panel, styles. |
+| `src/audio/` | Synthesised sound effects and music. |
+| `src/platform/` | Capacitor glue: AdMob rewarded ads, the Android back button, app pause/resume. |
+| `src/storage/` | The save (best height, skins, settings) in localStorage. |
 | `docs/` | Design documents. `game-design-v0.2.md` predates most features and is due an update. |
-
-## Running it
-
-Open `web/index.html` in any modern browser. On a desktop, the keys are
-Q ↖ · E ↗ · A ↙ · D ↘, Esc pauses, and R restarts.
 
 ## Android
 
 The game is wrapped for Android with [Capacitor](https://capacitorjs.com). `android/` is
 the native project; `capacitor.config.json` holds the app ID (`com.playcebo.cubeclimb`)
-and name.
+and name. Capacitor ships the Vite build in `dist/`, so run `npm run build` before
+`npx cap sync` (the `sync` and `android:*` scripts do this for you).
 
 **Builds run on GitHub.** Every push and pull request runs the *Android build* workflow
 (`.github/workflows/android.yml`). Download the results from the run's **Artifacts**:
@@ -63,7 +83,7 @@ earn nothing. Before releasing, replace both with your own from the AdMob consol
 | Where | What |
 |---|---|
 | `android/app/src/main/res/values/strings.xml` → `admob_app_id` | your AdMob **app** ID (`ca-app-pub-…~…`) |
-| `web/index.html` → `ADS.rewardedId`, and set `ADS.testing` to `false` | your **rewarded ad unit** ID (`ca-app-pub-…/…`) |
+| `src/platform/ads.ts` → `ADS.rewardedId`, and set `ADS.testing` to `false` | your **rewarded ad unit** ID (`ca-app-pub-…/…`) |
 
 Every build reports which kind it contains ("TEST ads" or "real ad unit") in the
 run's APK check.

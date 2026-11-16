@@ -13,3 +13,6 @@ Thumbs.db
 keystore.properties
 *.p12
 *.mobileprovision
+
+# build output
+dist/
