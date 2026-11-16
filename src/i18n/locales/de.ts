@@ -6,7 +6,6 @@ const m: Messages = {
   "hud.best": "Rekord",
   "hud.danger": "Gefahr",
   "pad.none": "leer",
-  "menu.tag": "Prototyp",
   "menu.play": "Spielen",
   "menu.skins": "Skins",
   "menu.how": "Anleitung",

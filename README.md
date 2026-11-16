@@ -82,6 +82,18 @@ Simplified Chinese. The game follows the device language; Settings → Language 
 
 The tuning panel is a developer tool and stays in English.
 
+## Icon, splash and store art
+
+All of it is drawn in code in `tools/icons/art.py` and rendered by
+`python3 tools/icons/make.py` (needs `rsvg-convert` and Pillow):
+
+- Android adaptive launcher icon (background, foreground and a monochrome layer for
+  Android 13 themed icons), plus legacy square and round icons for older launchers
+- the splash: Android 12+ uses the icon on the game's background colour; older versions
+  use `drawable*/splash.png`
+- `store/icon-512.png` and `store/feature-graphic-1024x500.png` for the Play listing
+- `public/icon.svg`, the web favicon
+
 ## Releasing
 
 Builds are named after the game and version: `cube-climb-<version>-<code>-release.aab`

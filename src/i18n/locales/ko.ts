@@ -6,7 +6,6 @@ const m: Messages = {
   "hud.best": "최고",
   "hud.danger": "위험도",
   "pad.none": "없음",
-  "menu.tag": "프로토타입",
   "menu.play": "플레이",
   "menu.skins": "스킨",
   "menu.how": "플레이 방법",

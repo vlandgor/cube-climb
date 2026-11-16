@@ -6,7 +6,6 @@ const m: Messages = {
   "hud.best": "最佳",
   "hud.danger": "危险",
   "pad.none": "空",
-  "menu.tag": "原型",
   "menu.play": "开始",
   "menu.skins": "皮肤",
   "menu.how": "玩法",
