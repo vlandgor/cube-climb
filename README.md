@@ -110,13 +110,17 @@ available, the revive is free. In a browser there are no ads.
 On first launch the app asks for ad consent where the law requires it (Google's UMP), and
 Settings then shows **Ad privacy choices**.
 
-**The build currently uses Google's public test IDs**, which always show a "Test Ad" and
-earn nothing. Before releasing, replace both with your own from the AdMob console:
+The build uses Cube Climb's own AdMob IDs:
 
 | Where | What |
 |---|---|
-| `android/app/src/main/res/values/strings.xml` → `admob_app_id` | your AdMob **app** ID (`ca-app-pub-…~…`) |
-| `src/platform/ads.ts` → `ADS.rewardedId`, and set `ADS.testing` to `false` | your **rewarded ad unit** ID (`ca-app-pub-…/…`) |
+| `android/app/src/main/res/values/strings.xml` → `admob_app_id` | AdMob **app** ID `ca-app-pub-8265696902451604~7998740981` |
+| `src/platform/ads.ts` → `ADS.rewardedId` | **Revive** rewarded unit `ca-app-pub-8265696902451604/5048484873` |
+
+**Never tap live ads on your own builds**: AdMob treats it as invalid traffic. Either
+register your phones as test devices (AdMob → Settings → Test devices), or for a test
+build swap in Google's test unit `ca-app-pub-3940256099942544/5224354917` and set
+`ADS.testing` to `true`.
 
 Every build reports which kind it contains ("TEST ads" or "real ad unit") in the
 run's APK check.
