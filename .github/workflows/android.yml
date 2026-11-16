@@ -93,11 +93,31 @@ jobs:
           name: cube-climb-debug-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
           path: android/app/build/outputs/apk/debug/*.apk
 
+      # the secret is pasted from a clipboard, often with Windows line endings or wrapping:
+      # drop all whitespace before decoding, then open the keystore with the alias and
+      # passwords so a wrong secret fails here with a clear message instead of deep in Gradle
       - name: Decode upload keystore
         if: env.KEYSTORE_B64 != ''
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/upload.keystore"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
+          KS="$RUNNER_TEMP/upload.keystore"
+          if ! printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n' | base64 --decode > "$KS" 2>/dev/null; then
+            echo "::error title=Signing::ANDROID_KEYSTORE_BASE64 is not valid base64 ($(printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n' | wc -c) characters). Copy the keystore again with the PowerShell command in the README and re-save the secret."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$KS" -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
+            echo "::error title=Signing::The keystore decoded ($(stat -c%s "$KS") bytes) but ANDROID_KEYSTORE_PASSWORD does not open it, or the file is not a keystore."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$KS" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error title=Signing::The keystore opens, but it has no key named ANDROID_KEY_ALIAS. Aliases in it: $(keytool -list -keystore "$KS" -storepass "$ANDROID_KEYSTORE_PASSWORD" 2>/dev/null | grep -oE '^[^,]+, ' | tr -d ', ' | paste -sd ' ')"
+            exit 1
+          fi
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
+          echo "::notice title=Signing::Upload keystore OK (alias $ANDROID_KEY_ALIAS)"
 
       - name: Build signed release AAB and APK
         if: env.KEYSTORE_B64 != ''
