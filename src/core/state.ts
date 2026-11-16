@@ -58,7 +58,7 @@ export const GS = {
   reviveGrace: 0,
   offerUntil: 0,
   offerOn: false,
-  deathWhy: "Fell",
+  deathWhy: "fell",                         // fell | caught | spiked (death.* keys)
 
   // menus
   curScreen: null as string | null,

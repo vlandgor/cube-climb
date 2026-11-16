@@ -72,7 +72,7 @@ export function step(dt: number){
         GS.pl.y=q.y; GS.pl.vy=0; GS.pl.vx=0; GS.pl.ground=true; GS.pl.p=q; GS.pl.sq=1.2;
         q.v=true;
         if(P.snap) GS.pl.x=q.x;
-        if(q.spk && GS.gt<q.spUntil!){ die("Spiked"); return; }
+        if(q.spk && GS.gt<q.spUntil!){ die("spiked"); return; }
         if(GS.pl.y>GS.maxY) GS.maxY=GS.pl.y;
         var h=Math.round(GS.pl.y/P.stepY); if(h>GS.best){ GS.best=h; checkUnlocks(); }
         var sk=curSkin();
@@ -130,7 +130,7 @@ export function die(reason?: string){
   if(GS.state!=="play") return;
   GS.state="dead"; GS.flash=1; GS.buf=null;
   sfx("death");
-  GS.deathWhy=reason||"Fell";
+  GS.deathWhy=reason||"fell";
   if(GS.best>(save.best||0)){ save.best=GS.best; writeSave(); }   // saved now, celebrated at the end
   setTimeout(function(){                                  // let the death land first
     if(GS.state!=="dead") return;

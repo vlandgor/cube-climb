@@ -5,6 +5,7 @@ import { adMob, onReviveTap } from "../platform/ads";
 import { resize } from "../render/canvas";
 import { save, writeSave } from "../storage/save";
 import { $ } from "./dom";
+import { detect, setLocale, t } from "../i18n";
 import { openSkins } from "./skins";
 
 // MENUS — button wiring for every screen, settings toggles, and pausing when hidden.
@@ -28,11 +29,16 @@ export function initMenus(){
   $("optTune").addEventListener("change",function(this: HTMLInputElement){ save.tuning=this.checked?1:0; writeSave(); applyTuning(); });
   $("optSfx").addEventListener("change",function(this: HTMLInputElement){ save.sfx=this.checked?1:0; writeSave(); sfx("click"); });
   $("optMus").addEventListener("change",function(this: HTMLInputElement){ save.music=this.checked?1:0; writeSave(); });
+  $("optLang").addEventListener("change",function(this: HTMLSelectElement){
+    if(this.value) save.lang=this.value; else delete save.lang;      // "" = follow the device
+    writeSave(); sfx("click");
+    setLocale(save.lang||detect()).then(openSettings);              // redraw this screen in the new language
+  });
   tap("bResetBest", function(){                 // two taps, so it can't happen by accident
     var b=$("bResetBest");
-    if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="Tap again"; return; }
+    if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent=t("set.resetArm"); return; }
     save.best=0; writeSave(); GS.best=0;
-    b.classList.remove("arm"); b.textContent="Done"; $("setBest").textContent="none yet";
+    b.classList.remove("arm"); b.textContent=t("set.resetDone"); $("setBest").textContent=t("set.bestNone");
   });
   tap("pauseBtn", function(){ if(GS.state==="play") pauseRun(); });
   tap("bResume", resumeRun);

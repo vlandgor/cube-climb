@@ -103,7 +103,7 @@ export function updateFoes(dt: number){
     // contact: two cubes overlapping (a little forgiving at the edges)
     if(f.st!=="tele" && GS.state==="play" && GS.gt>=GS.reviveGrace){
       var dx=Math.abs(f.x-GS.pl.x);
-      if(dx < s*0.78 && GS.pl.y < f.y+s*0.85 && f.y < GS.pl.y+s*0.85){ die("Caught"); return; }
+      if(dx < s*0.78 && GS.pl.y < f.y+s*0.85 && f.y < GS.pl.y+s*0.85){ die("caught"); return; }
     }
   }
 }

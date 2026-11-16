@@ -11,6 +11,8 @@ import { syncPad } from "../ui/pad";
 import { grow, newTip } from "../world/generate";
 import { addPlat, waysUp } from "../world/grid";
 import type { Plat } from "../core/types";
+import { LOCALES, locale, t } from "../i18n";
+import type { Key } from "../i18n/format";
 
 // ---------------------------------------------------------------------------
 // MENUS & RUN FLOW. states: "menu" → "play" ⇄ "paused" → "dead" → "play" | "menu".
@@ -32,7 +34,7 @@ export function reset(){
 }
 export function goMenu(){
   reset(); GS.state="menu";
-  $("menuBest").innerHTML = save.best ? "Best <b>"+save.best+"</b> steps" : "Climb as high as you can";
+  $("menuBest").innerHTML = save.best ? t("menu.best",{n:save.best}) : t("menu.first");
   show("sMenu");
 }
 export function startRun(){
@@ -68,9 +70,9 @@ function revivePoint(){
 }
 export function offerRevive(){
   GS.offerOn=true; GS.offerUntil=GS.now+P.reviveWindow/1000;
-  $("revWhy").textContent=GS.deathWhy;
-  $("revInfo").innerHTML="You reached <b>"+GS.best+"</b> steps";
-  $("revLabel").textContent = (adMob() && ADS.ready) ? "\u25B6 Watch ad to revive" : "Revive";
+  $("revWhy").textContent=t(("death."+GS.deathWhy) as Key);
+  $("revInfo").innerHTML=t("revive.info",{n:GS.best});
+  $("revLabel").textContent = (adMob() && ADS.ready) ? t("revive.ad") : t("revive.free");
   show("sRevive");
 }
 export function doRevive(){
@@ -89,17 +91,20 @@ export function doRevive(){
 export function endRun(){                            // the run is really over: results
   GS.offerOn=false;
   var isNew = GS.best>runPrevBest && GS.best>0;
-  $("overWhy").textContent=GS.deathWhy;
+  $("overWhy").textContent=t(("death."+GS.deathWhy) as Key);
   $("overH").textContent=String(GS.best);
-  $("overBest").innerHTML = isNew ? '<span class="badge">New best</span>'
-                                  : '<span class="bestline">Best <b>'+(save.best||0)+'</b></span>';
-  $("overUnlock").textContent = GS.runUnlocks.length ? "New skin"+(GS.runUnlocks.length>1?"s":"")+": "+GS.runUnlocks.join(", ") : "";
+  $("overUnit").textContent=t("over.unit",{n:GS.best});
+  $("overBest").innerHTML = isNew ? '<span class="badge">'+t("over.newBest")+'</span>'
+                                  : '<span class="bestline">'+t("over.best",{n:save.best||0})+'</span>';
+  var names=GS.runUnlocks.map(function(id){ return t(("skin."+id) as Key); });
+  $("overUnlock").textContent = names.length
+    ? t("over.newSkins",{n:names.length, names:new Intl.ListFormat(locale()).format(names)}) : "";
   show("sOver"); if(isNew) sfx("best");
 }
 export function pauseRun(){
   if(GS.state!=="play") return;
   GS.state="paused";
-  $("pauseInfo").innerHTML="Height <b>"+Math.max(0,Math.round(GS.pl.y/P.stepY))+"</b> · best <b>"+allBest()+"</b>";
+  $("pauseInfo").innerHTML=t("pause.info",{h:Math.max(0,Math.round(GS.pl.y/P.stepY)), b:allBest()});
   show("sPause");
 }
 export function resumeRun(){ if(GS.state!=="paused") return; GS.state="play"; show(null); }
@@ -108,8 +113,14 @@ export function openHow(back: string){ GS.howReturn=back; show("sHow"); }
 export function openSettings(){
   $<HTMLInputElement>("optTune").checked=!!save.tuning;
   $<HTMLInputElement>("optSfx").checked=sfxOn(); $<HTMLInputElement>("optMus").checked=musOn();
-  $("setBest").textContent = save.best ? save.best+" steps" : "none yet";
-  $("bResetBest").textContent="Reset"; $("bResetBest").classList.remove("arm");
+  $("setBest").textContent = save.best ? t("set.bestSteps",{n:save.best}) : t("set.bestNone");
+  $("bResetBest").textContent=t("set.reset"); $("bResetBest").classList.remove("arm");
+  // language picker: "device language" first, then every language in its own name
+  var sel=$<HTMLSelectElement>("optLang");
+  sel.innerHTML="";
+  sel.add(new Option(t("set.langAuto"),""));
+  for(var i=0;i<LOCALES.length;i++) sel.add(new Option(LOCALES[i].name,LOCALES[i].code));
+  sel.value=save.lang||"";
   show("sSet");
 }
 export function applyTuning(){

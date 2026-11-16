@@ -43,6 +43,12 @@ android {
     }
 }
 
+// every build is named after the game and its version, e.g.
+// cube-climb-1.0.0-120-release.aab, cube-climb-1.0.0-120-release.apk, cube-climb-1.0.0-120-debug.apk
+base {
+    archivesName = "cube-climb-${android.defaultConfig.versionName}-${android.defaultConfig.versionCode}"
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
