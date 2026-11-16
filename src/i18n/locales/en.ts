@@ -14,7 +14,6 @@ export const en = {
   "pad.none": "void",
 
   // main menu
-  "menu.tag": "prototype",
   "menu.play": "Play",
   "menu.skins": "Skins",
   "menu.how": "How to play",

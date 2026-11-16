@@ -82,6 +82,18 @@ Simplified Chinese. The game follows the device language; Settings → Language 
 
 The tuning panel is a developer tool and stays in English.
 
+## Icon, splash and store art
+
+All of it is drawn in code in `tools/icons/art.py` and rendered by
+`python3 tools/icons/make.py` (needs `rsvg-convert` and Pillow):
+
+- Android adaptive launcher icon (background, foreground and a monochrome layer for
+  Android 13 themed icons), plus legacy square and round icons for older launchers
+- the splash: Android 12+ uses the icon on the game's background colour; older versions
+  use `drawable*/splash.png`
+- `store/icon-512.png` and `store/feature-graphic-1024x500.png` for the Play listing
+- `public/icon.svg`, the web favicon
+
 ## Releasing
 
 Builds are named after the game and version: `cube-climb-<version>-<code>-release.aab`
@@ -98,13 +110,17 @@ available, the revive is free. In a browser there are no ads.
 On first launch the app asks for ad consent where the law requires it (Google's UMP), and
 Settings then shows **Ad privacy choices**.
 
-**The build currently uses Google's public test IDs**, which always show a "Test Ad" and
-earn nothing. Before releasing, replace both with your own from the AdMob console:
+The build uses Cube Climb's own AdMob IDs:
 
 | Where | What |
 |---|---|
-| `android/app/src/main/res/values/strings.xml` → `admob_app_id` | your AdMob **app** ID (`ca-app-pub-…~…`) |
-| `src/platform/ads.ts` → `ADS.rewardedId`, and set `ADS.testing` to `false` | your **rewarded ad unit** ID (`ca-app-pub-…/…`) |
+| `android/app/src/main/res/values/strings.xml` → `admob_app_id` | AdMob **app** ID `ca-app-pub-8265696902451604~7998740981` |
+| `src/platform/ads.ts` → `ADS.rewardedId` | **Revive** rewarded unit `ca-app-pub-8265696902451604/5048484873` |
+
+**Never tap live ads on your own builds**: AdMob treats it as invalid traffic. Either
+register your phones as test devices (AdMob → Settings → Test devices), or for a test
+build swap in Google's test unit `ca-app-pub-3940256099942544/5224354917` and set
+`ADS.testing` to `true`.
 
 Every build reports which kind it contains ("TEST ads" or "real ad unit") in the
 run's APK check.

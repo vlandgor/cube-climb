@@ -9,10 +9,11 @@ import { $ } from "../ui/dom";
 // requires for rewarded ads.
 // ---------------------------------------------------------------------------
 export const ADS={
-  // Google's public TEST rewarded unit: always serves a "Test Ad". replace with your own
-  // ad unit id from the AdMob console, and set testing:false, before releasing.
-  rewardedId: "ca-app-pub-3940256099942544/5224354917",
-  testing: true,
+  // Cube Climb's "Revive" rewarded unit (AdMob -> Apps -> Cube Climb -> Ad units).
+  // for a test build, swap in Google's test unit ca-app-pub-3940256099942544/5224354917
+  // and set testing:true, so you never tap your own live ads.
+  rewardedId: "ca-app-pub-8265696902451604/5048484873",
+  testing: false,
   ready:false, loading:false, showing:false, earned:false, canRequest:false,
   privacyRequired:false, left:0
 };
