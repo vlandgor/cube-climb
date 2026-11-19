@@ -32,7 +32,9 @@ export const P={
   four:true, buffer:140, ignoreVoid:true, dim:true, preview:true,
   onRelease:false, useMod:true, consume:true, air:false,
   auto:false, autoDelay:60, snap:true,
-  fallSteps:12, showLine:true,
+  // the death line trails your best height. it starts fallSteps below and tightens to
+  // fallMin by fallFull steps (scaled by pace), so the climb gets less forgiving.
+  fallSteps:12, fallMin:8, fallFull:400, showLine:true,
   camLerp:0.12, look:0.07, camX:true, camPos:0.8, boxX:0.08, boxY:0.11, viewCols:6.6
 };
 export type Params = typeof P;

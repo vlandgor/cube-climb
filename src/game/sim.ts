@@ -43,6 +43,7 @@ export function step(dt: number){
       GS.pl.x=lift.x; GS.pl.y=lift.y; GS.pl.p=lift; GS.pl.ground=true; GS.pl.vx=0; GS.pl.vy=0; GS.pl.sq=1.1;
       GS.pl.boost=0; GS.pl.djLeft = P.dj ? P.djMax : 0;
       if(GS.pl.y>GS.maxY) GS.maxY=GS.pl.y;
+      while(GS.pl.y<deathY()+P.stepY) GS.maxY-=P.stepY;  // a ride down never drops you under the line
       var hh=Math.round(GS.pl.y/P.stepY); if(hh>GS.best){ GS.best=hh; checkUnlocks(); }
       if(P.auto) GS.autoT=P.autoDelay/1000;
       syncPad();

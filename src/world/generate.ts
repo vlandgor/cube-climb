@@ -3,7 +3,7 @@ import { P } from "../config/params";
 import { rnd } from "../core/math";
 import { markTurn } from "../entities/walker";
 import { sched } from "./difficulty";
-import { addPlat, adjHole, deathY, dnOK, fragOK, isHole, isTipPlat, key, nearObstacle, removePlat, waysUp } from "./grid";
+import { addPlat, adjHole, deathY, dnOK, fallAt, fragOK, isHole, isTipPlat, key, nearObstacle, removePlat, waysUp } from "./grid";
 import { clearShaft } from "./tiles";
 import type { Plat, Tip } from "../core/types";
 import type { Params } from "../config/params";
@@ -28,7 +28,7 @@ function catchesFall(src: Plat, dir: number, gap: Plat){
   var g=P.grav, S=P.stepY, v0=Math.sqrt(2*g*S*P.apex);
   var tt=(v0+Math.sqrt(Math.max(0,v0*v0-2*g*S)))/g;
   var x=src.x, y=src.y, vx=dir*P.stepX/tt, vy=v0, dt=1/240;
-  var floor=src.y-(P.fallSteps-2)*P.stepY;
+  var floor=src.y-(fallAt(src.gy)-2)*P.stepY;
   while(y>floor){
     var py=y; vy-=g*dt; x+=vx*dt; y+=vy*dt;
     if(vy>=0) continue;

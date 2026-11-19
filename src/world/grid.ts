@@ -1,13 +1,20 @@
 import { GS } from "../core/state";
 import { P } from "../config/params";
 import type { Plat } from "../core/types";
+import { mix, smooth01 } from "../core/math";
 
 // GRID — platforms live on a fixed lattice. lookups, holes (cells that must stay empty)
 // and the spacing rules that keep two obstacles from ever sitting side by side.
 // teaching: which mechanics this run has already shown the player once
 
 export function key(x: number, y: number){return Math.round(x/P.stepX)+","+Math.round(y/P.stepY);}
-export function deathY(){return GS.maxY - P.fallSteps*P.stepY;}
+// how many steps below your best you may fall at a given height (in steps): eases from
+// fallSteps at the bottom down to fallMin by fallFull, never below the minimum.
+export function fallAt(gy: number){
+  var lo=Math.min(P.fallMin,P.fallSteps), full=Math.max(1,P.fallFull*P.pace);
+  return mix(P.fallSteps, lo, smooth01(gy/full));
+}
+export function deathY(){return GS.maxY - fallAt(GS.maxY/P.stepY)*P.stepY;}
 
 export function addPlat(x: number, y: number, dir: number): Plat{
   var k=key(x,y);

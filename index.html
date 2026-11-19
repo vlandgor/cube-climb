@@ -162,7 +162,9 @@
     <div class="row"><label>Segment length max</label><input type="range" id="pSegB" min="3" max="20" step="1"><output id="oSegB"></output></div>
 
     <h3>Failure &amp; camera · Q6, Q7</h3>
-    <div class="row"><label>Fall tolerance (steps below best)</label><input type="range" id="pFall" min="2" max="40" step="1"><output id="oFall"></output></div>
+    <div class="row"><label>Fall tolerance at start (steps below best)</label><input type="range" id="pFall" min="2" max="40" step="1"><output id="oFall"></output></div>
+    <div class="row"><label>Fall tolerance minimum</label><input type="range" id="pFallMin" min="2" max="40" step="1"><output id="oFallMin"></output></div>
+    <div class="row"><label>Tightens to minimum by height</label><input type="range" id="pFallFull" min="50" max="1000" step="25"><output id="oFallFull"></output></div>
     <div class="row"><label>Show death line</label><input type="checkbox" id="pLine" checked></div>
     <div class="row"><label>Camera smoothing</label><input type="range" id="pCam" min="0.02" max="1" step="0.02"><output id="oCam"></output></div>
     <div class="row"><label>Camera box height</label><input type="range" id="pBoxY" min="0.02" max="0.3" step="0.01"><output id="oBoxY"></output></div>
