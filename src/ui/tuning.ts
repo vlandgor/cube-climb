@@ -103,6 +103,8 @@ bind("pSegA","segMin","oSegA"); bind("pSegB","segMax","oSegB");
 bind("pElevM","elevMin","oElevM");
 $("restart").addEventListener("click",function(){ beginRun(); });
 bind("pFall","fallSteps","oFall");
+bind("pFallMin","fallMin","oFallMin");
+bind("pFallFull","fallFull","oFallFull");
 bind("pCam","camLerp","oCam",function(v){return v.toFixed(2);});
 bind("pLook","look","oLook",function(v){return v.toFixed(2);});
 bind("pBoxY","boxY","oBoxY",function(v){return v.toFixed(2);});
