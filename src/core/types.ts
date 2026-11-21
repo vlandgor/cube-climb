@@ -9,6 +9,7 @@ export interface Plat {
   dir: number;                   // direction the staircase was climbing when it was laid
   v: boolean;                    // visited
   vt?: number;                   // when it was first landed on: skin paint animates in from here
+  lt?: number;                   // when it was last landed on (the Ghost skin's footprints fade from here)
 
   frag?: number; hits?: number; fuse?: number;          // fragile: cracks, then collapses
   spr?: number;                                          // spring: next jump spans two steps

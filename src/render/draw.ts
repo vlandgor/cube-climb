@@ -6,7 +6,7 @@ import { avail, held, resolve, targetOf } from "../game/movement";
 import { zoom } from "./camera";
 import { ctx } from "./canvas";
 import { curSkin, paintCube } from "./skins";
-import { drawTraces, paintTile } from "./paint";
+import { drawPath, paintTile } from "./paint";
 import { allBest } from "../storage/save";
 import { syncPad } from "../ui/pad";
 import { danger } from "../world/difficulty";
@@ -64,7 +64,7 @@ export function draw(){
   }
 
   var sk=curSkin();
-  if(sk.paint==="circuit") drawTraces(sx,sy);      // the wires go under the tiles
+  if(sk.paint) drawPath(sk.paint,sx,sy);           // Robot's wires, Galaxy's constellation: under the tiles
 
   for(var i=0;i<GS.plats.length;i++){
     var q=GS.plats[i];
@@ -258,8 +258,11 @@ export function draw(){
     ctx.globalAlpha=1;
   }else ghostFrom=null;
 
-  var s=Math.min(P.platW*0.5,26), sq=Math.max(0,GS.pl.sq);
-  var w=s*(1+0.28*sq), h=s*(1-0.28*sq);
+  var s=Math.min(P.platW*0.5,26), sq=Math.max(0,GS.pl.sq), sqk=sk.squish||0.28;
+  var w=s*(1+sqk*sq), h=s*(1-sqk*sq);
+  if(sk.squish && !GS.pl.ground && !GS.ride){      // squishy skins also stretch with speed in the air
+    var st=Math.min(1,Math.abs(GS.pl.vy)/1100)*(sk.squish-0.28); w*=1-st; h*=1+st;
+  }
   var shake = GS.reject>0 ? Math.sin(GS.reject*90)*5 : 0;
   var X=sx(GS.pl.x)+shake, Y=sy(GS.pl.y);
 

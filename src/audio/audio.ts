@@ -103,28 +103,57 @@ const SFX: Record<string, (a?: any, b?: any) => void>={
                       [659,880,1319].forEach(function(f,i){ tone(f,0.3,{vol:0.06,delay:0.25+0.07*i}); }); },
   click:  function(){ tone(620,0.035,{type:"triangle",vol:0.05}); }
 };
-// ---- skin voices: a skin with a voice replaces the movement sounds below, and colours
+// ---- skin voices: a skin with a voice replaces the movement sounds below, and may colour
 // the music (see musicTick). anything a voice doesn't define plays the normal sound.
+type Fn = (a?: any, b?: any) => void;
 function chordNow(){ return CHORDS[Math.floor((AU.step%64)/16)]; }
+// a voice's counters restart with each run: GS.gt does, so a drop in it means a new run
+var runAt=-1, stair=0, streak=0;
+function sameRun(){ if(GS.gt<runAt){ stair=0; streak=0; } runAt=GS.gt; }
+
 // bell (Rainbow): climbing plays a melody. every step up is the next note of whatever
 // chord the music is on, three octaves of it; a step down goes back one.
-var stair=0, stairRun=-1;
-function stairStep(by: number){
-  if(GS.gt<stairRun) stair=0;                         // gt restarts each run: so does the melody
-  stairRun=GS.gt; stair=Math.max(0,stair+by);
-  var n=stair%9, ch=chordNow()[1];
-  return ch[n%3]*Math.pow(2,Math.floor(n/3));
-}
+function stairNote(){ var n=stair%9, ch=chordNow()[1]; return ch[n%3]*Math.pow(2,Math.floor(n/3)); }
+function stairStep(by: number){ sameRun(); stair=Math.max(0,stair+by); return stairNote(); }
 function bell(f: number, vol: number, delay?: number){ tone(f,0.42,{vol:vol,delay:delay}); tone(f*2,0.2,{vol:vol*0.3,delay:delay}); }
-const VOICES: Record<string, Record<string, (a?: any, b?: any) => void>>={
-  bell: {
-    jump:   function(){ bell(stairStep(1),0.085); },
-    launch: function(){ bell(stairStep(1),0.08); bell(stairStep(1),0.08,0.07); },   // a spring spans two steps
-    drop:   function(){ bell(stairStep(-1),0.05); },
-    air:    function(){ var f=stairNote(); tone(f*2,0.3,{vol:0.05}); tone(f*3,0.25,{vol:0.03,delay:0.05}); noise(0.1,{f:5000,to:8000,q:3,vol:0.03}); },
-    land:   function(){ tone(140,0.05,{to:95,vol:0.09}); },
+
+// coin (Gold): each landing dings a semitone higher while you keep climbing; a step down resets it
+function ding(){ var f=988*Math.pow(2,Math.min(streak,12)/12); tone(f,0.16,{type:"square",vol:0.03}); tone(f*1.5,0.28,{vol:0.05,delay:0.06}); }
+
+// airy (Ghost): breathy, and every sound comes back once as a faint echo
+function echo(fn: (delay: number, vol: number) => void){ fn(0,1); fn(0.17,0.32); }
+
+// chime (Galaxy): high notes from the chord the music is on
+function chordTone(oct: number){ var ch=chordNow()[1]; return ch[(Math.random()*3)|0]*oct; }
+
+// glass (Diamond): a few high tinkles, for breaking ice
+function tinkle(n: number, delay: number){ for(var i=0;i<n;i++) tone(2400+Math.random()*2200,0.09,{vol:0.03,delay:delay+0.05*i+Math.random()*0.03}); }
+
+const VOICES: Record<string, Record<string, Fn>>={
+  // Shades: soft rounded tones, a bass hit on landing; the music gets a lo-fi beat
+  lofi: {
+    jump:   function(){ tone(300,0.1,{to:480,vol:0.09}); },
+    drop:   function(){ tone(420,0.1,{to:250,vol:0.08}); },
+    launch: function(){ tone(220,0.24,{to:700,vol:0.12}); },
+    land:   function(){ tone(72,0.14,{to:44,vol:0.2}); noise(0.05,{type:"lowpass",f:500,vol:0.08}); },
   },
-  // chip (Robot): 8-bit square-wave bleeps
+  // Grape: bubbly bloops
+  bloop: {
+    jump:   function(){ tone(280,0.11,{to:720,vol:0.1}); },
+    drop:   function(){ tone(620,0.1,{to:260,vol:0.08}); },
+    launch: function(){ tone(220,0.2,{to:900,vol:0.11}); tone(900,0.06,{to:1300,vol:0.04,delay:0.12}); },
+    air:    function(){ [620,820,1040].forEach(function(f,i){ tone(f,0.06,{to:f*1.3,vol:0.06,delay:0.04*i}); }); },
+    land:   function(){ tone(240,0.09,{to:520,vol:0.09}); },
+  },
+  // Ghost: whooshes and breaths with an echo; the music sounds far away (musicTick)
+  airy: {
+    jump:   function(){ echo(function(d,v){ noise(0.14,{f:900,to:2200,q:5,vol:0.08*v,delay:d}); tone(520,0.12,{to:780,vol:0.025*v,delay:d}); }); },
+    drop:   function(){ echo(function(d,v){ noise(0.14,{f:2000,to:900,q:5,vol:0.07*v,delay:d}); }); },
+    launch: function(){ echo(function(d,v){ noise(0.3,{f:600,to:3000,q:4,vol:0.09*v,delay:d}); }); },
+    air:    function(){ echo(function(d,v){ noise(0.16,{f:2500,to:6000,q:6,vol:0.07*v,delay:d}); }); },
+    land:   function(){ echo(function(d,v){ noise(0.08,{type:"lowpass",f:700,vol:0.06*v,delay:d}); }); },
+  },
+  // Robot: 8-bit square-wave bleeps; the music turns chiptune (musicTick)
   chip: {
     jump:   function(){ tone(440,0.06,{to:880,type:"square",vol:0.045}); },
     launch: function(){ [523,659,784,1047].forEach(function(f,i){ tone(f,0.05,{type:"square",vol:0.04,delay:0.035*i}); }); },
@@ -132,8 +161,40 @@ const VOICES: Record<string, Record<string, (a?: any, b?: any) => void>>={
     air:    function(){ tone(880,0.04,{type:"square",vol:0.04}); tone(1320,0.05,{type:"square",vol:0.035,delay:0.045}); },
     land:   function(){ tone(110,0.04,{type:"square",vol:0.05}); noise(0.02,{type:"highpass",f:5000,vol:0.04}); },
   },
+  // Gold: the normal jumps, but coins on landing that climb in pitch
+  coin: {
+    jump:   function(){ sameRun(); streak++; SFX.jump(); },
+    launch: function(){ sameRun(); streak+=2; SFX.launch(); },
+    drop:   function(){ sameRun(); streak=0; SFX.drop(); },
+    land:   function(){ sameRun(); ding(); },
+  },
+  // Galaxy: chimes from the current chord; the music gets a celesta (musicTick)
+  chime: {
+    jump:   function(){ var f=chordTone(4); tone(f,0.4,{vol:0.045}); tone(f*2,0.2,{type:"triangle",vol:0.012}); },
+    drop:   function(){ tone(chordTone(2),0.35,{vol:0.04}); },
+    launch: function(){ var f=chordTone(4); tone(f,0.4,{vol:0.045}); tone(f*1.5,0.4,{vol:0.04,delay:0.08}); },
+    air:    function(){ var ch=chordNow()[1]; ch.forEach(function(f,i){ tone(f*4,0.3,{vol:0.035,delay:0.05*i}); }); },
+    land:   function(){ tone(chordTone(8),0.25,{vol:0.02}); tone(140,0.05,{to:95,vol:0.07}); },
+  },
+  // Diamond: glassy pings, and fragile tiles crack and shatter like ice
+  glass: {
+    jump:   function(){ tone(1400,0.08,{to:2000,vol:0.05}); },
+    drop:   function(){ tone(1800,0.08,{to:1200,vol:0.045}); },
+    launch: function(){ tone(1200,0.18,{to:2800,vol:0.06}); },
+    land:   function(){ tone(2637,0.15,{vol:0.045}); tone(3951,0.1,{vol:0.022,delay:0.01}); },
+    creak:  function(){ tone(2200,0.12,{to:1800,type:"triangle",vol:0.025}); },
+    crack:  function(){ noise(0.05,{type:"highpass",f:6500,vol:0.12}); tone(3200,0.06,{to:2600,vol:0.04}); },
+    crumble:function(){ noise(0.35,{type:"highpass",f:5000,to:2500,vol:0.12}); tinkle(5,0.04); },
+  },
+  // Rainbow: see stairStep
+  bell: {
+    jump:   function(){ bell(stairStep(1),0.085); },
+    launch: function(){ bell(stairStep(1),0.08); bell(stairStep(1),0.08,0.07); },   // a spring spans two steps
+    drop:   function(){ bell(stairStep(-1),0.05); },
+    air:    function(){ var f=stairNote(); tone(f*2,0.3,{vol:0.05}); tone(f*3,0.25,{vol:0.03,delay:0.05}); noise(0.1,{f:5000,to:8000,q:3,vol:0.03}); },
+    land:   function(){ tone(140,0.05,{to:95,vol:0.09}); },
+  },
 };
-function stairNote(){ var n=stair%9, ch=chordNow()[1]; return ch[n%3]*Math.pow(2,Math.floor(n/3)); }
 
 export function sfx(name: string, a?: unknown, b?: unknown){
   if(!AU.ctx || !sfxOn()) return;
@@ -149,28 +210,40 @@ function musicTick(){
   var c=AU.ctx; if(!c) return;
   var spb=60/96/4;                                   // one sixteenth note
   var dz = GS.state==="play"||GS.state==="paused" ? danger(Math.max(0,Math.round(GS.pl.y/P.stepY))) : 0.15;
-  AU.musLP.frequency.setTargetAtTime(1200+dz*4200, c.currentTime, 0.4);
+  // the skin's voice colours the music:
+  //   lofi (Shades)   a soft kick, snare and hats; a warmer filter
+  //   airy (Ghost)    far away: darker and quieter
+  //   chip (Robot)    square-wave bass and melody
+  //   chime (Galaxy)  a celesta plays the melody
+  //   bell (Rainbow)  the melody rings an octave up with a long tail
+  var voice=curSkin().voice;
+  var dark = voice==="airy" ? 0.45 : voice==="lofi" ? 0.7 : 1;
+  AU.musLP.frequency.setTargetAtTime((1200+dz*4200)*dark, c.currentTime, 0.4);
   if(AU.next < c.currentTime-0.05) AU.next=c.currentTime;   // after a stall: skip, don't burst
   while(AU.next < c.currentTime+0.12){
     var s=AU.step%64, bar=Math.floor(s/16), ch=CHORDS[bar], t=AU.next, bus=AU.musLP;
     if(musOn()){
-      // the skin's voice: chip turns bass and melody into square waves, bell rings the
-      // melody an octave up with a long tail
-      var voice=curSkin().voice, chip=voice==="chip", bells=voice==="bell";
+      var chip=voice==="chip";
       if(s%16===0) ch[1].forEach(function(f){ tone(f,spb*16,{type:"triangle",vol:0.022,a:0.4,bus:bus,at:t}); });
       if(s%4===0) tone(ch[0],spb*3.5,{type:chip?"square":"sine",vol:chip?0.03:0.09,a:0.01,bus:bus,at:t});
       if(Math.random() < 0.18+0.55*dz){
         var nf=ch[1][(Math.random()*3)|0]*(Math.random()<0.5?2:4);
         if(chip) tone(nf,spb*1.2,{type:"square",vol:0.014,a:0.002,bus:bus,at:t});
-        else if(bells) tone(nf*2,spb*5,{type:"sine",vol:0.02,a:0.003,bus:bus,at:t});
+        else if(voice==="bell") tone(nf*2,spb*5,{type:"sine",vol:0.02,a:0.003,bus:bus,at:t});
+        else if(voice==="chime"){ tone(nf*2,spb*3,{type:"sine",vol:0.022,a:0.002,bus:bus,at:t}); tone(nf*4,spb*1.5,{type:"triangle",vol:0.006,a:0.002,bus:bus,at:t}); }
         else tone(nf,spb*1.6,{type:"triangle",vol:0.028,a:0.004,bus:bus,at:t});
       }
-      if(dz>0.35 && s%2===0) noise(0.03,{type:"highpass",f:7000,vol:0.012+0.02*dz,bus:bus,at:t});
+      if(voice==="lofi"){
+        if(s%8===0) tone(70,0.2,{to:40,vol:0.13,a:0.003,bus:bus,at:t});
+        if(s%8===4) noise(0.12,{f:1800,q:0.8,vol:0.05,bus:bus,at:t});
+        if(s%4===2) noise(0.025,{type:"highpass",f:7000,vol:0.018,bus:bus,at:t+spb*0.12});   // a little swing
+      }else if(dz>0.35 && s%2===0) noise(0.03,{type:"highpass",f:7000,vol:0.012+0.02*dz,bus:bus,at:t});
     }
     AU.step++; AU.next+=spb;
   }
   // louder while playing, quieter behind menus, off when muted
   var target = !musOn() ? 0 : GS.state==="play" ? 0.85 : GS.state==="paused" ? 0.3 : 0.55;
+  if(voice==="airy") target*=0.7;
   AU.mus.gain.setTargetAtTime(target, c.currentTime, 0.3);
   AU.sfx.gain.setTargetAtTime(sfxOn()?0.85:0, c.currentTime, 0.05);
 }

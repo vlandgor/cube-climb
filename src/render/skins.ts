@@ -11,19 +11,20 @@ export interface Skin {
   req: number;          // height to reach in one run to unlock it
   trail?: string;       // afterimage while airborne: ghost | stars | rainbow
   land?: string;        // "r,g,b" sparkle on landing
-  paint?: string;       // how plain tiles you've stood on look (render/paint.ts): rainbow | circuit
-  voice?: string;       // movement sounds and a music voice (audio/audio.ts): bell | chip
+  paint?: string;       // how plain tiles you've stood on look (render/paint.ts)
+  voice?: string;       // movement sounds and a music voice (audio/audio.ts)
+  squish?: number;      // how much the cube squashes on landing and stretches in the air (0.28 normal)
 }
 export const SKINS: Skin[]=[
   {id:"classic", req:0},
-  {id:"shades",  req:25},
-  {id:"grape",   req:50},
-  {id:"ghost",   req:100,  trail:"ghost"},
+  {id:"shades",  req:25,   paint:"neon", voice:"lofi"},
+  {id:"grape",   req:50,   paint:"splat", voice:"bloop", squish:0.5},
+  {id:"ghost",   req:100,  trail:"ghost", paint:"footprints", voice:"airy"},
   {id:"robot",   req:150,  paint:"circuit", voice:"chip", land:"120,240,255"},
-  {id:"gold",    req:250,  land:"255,214,96"},
-  {id:"galaxy",  req:400,  trail:"stars"},
+  {id:"gold",    req:250,  land:"255,214,96", paint:"gold", voice:"coin"},
+  {id:"galaxy",  req:400,  trail:"stars", paint:"constellation", voice:"chime"},
   {id:"rainbow", req:600,  trail:"rainbow", paint:"rainbow", voice:"bell"},
-  {id:"diamond", req:1000, land:"190,240,255"}
+  {id:"diamond", req:1000, land:"190,240,255", paint:"crystal", voice:"glass"}
 ];
 function skinById(id: string){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
 // the dev channel (Cube Climb Dev) opens every skin for testing. it doesn't touch the save,
