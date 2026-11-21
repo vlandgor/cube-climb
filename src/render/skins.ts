@@ -1,4 +1,5 @@
 import { save } from "../storage/save";
+import { IS_DEV } from "../platform/dev";
 
 // ---------------------------------------------------------------------------
 // SKINS — cosmetic only. unlocked by reaching a height in a single run. none use the
@@ -22,7 +23,9 @@ export const SKINS: Skin[]=[
   {id:"diamond", req:1000, land:"190,240,255"}
 ];
 function skinById(id: string){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
-export function unlocked(s: Skin){ return s.req===0 || !!(save.unl && save.unl[s.id]); }
+// the dev channel (Cube Climb Dev) opens every skin for testing. it doesn't touch the save,
+// so height unlocks and their toasts still fire as they would for a player
+export function unlocked(s: Skin){ return IS_DEV || s.req===0 || !!(save.unl && save.unl[s.id]); }
 export function curSkin(){ var s=skinById(save.skin||"classic"); return unlocked(s)?s:SKINS[0]; }
 
 export function rrc(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r);
