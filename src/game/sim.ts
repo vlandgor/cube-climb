@@ -72,6 +72,7 @@ export function step(dt: number){
       if(py>=q.y-0.5 && GS.pl.y<=q.y && Math.abs(GS.pl.x-q.x)<=P.platW*0.5+2){
         GS.pl.y=q.y; GS.pl.vy=0; GS.pl.vx=0; GS.pl.ground=true; GS.pl.p=q; GS.pl.sq=1.2;
         if(!q.v) q.vt=GS.gt;
+        q.lt=GS.gt;
         q.v=true;
         if(GS.path[GS.path.length-1]!==q){ GS.path.push(q); if(GS.path.length>300) GS.path.shift(); }
         if(P.snap) GS.pl.x=q.x;
