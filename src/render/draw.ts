@@ -6,6 +6,7 @@ import { avail, held, resolve, targetOf } from "../game/movement";
 import { zoom } from "./camera";
 import { ctx } from "./canvas";
 import { curSkin, paintCube } from "./skins";
+import { drawTraces, paintTile } from "./paint";
 import { allBest } from "../storage/save";
 import { syncPad } from "../ui/pad";
 import { danger } from "../world/difficulty";
@@ -62,6 +63,9 @@ export function draw(){
     }
   }
 
+  var sk=curSkin();
+  if(sk.paint==="circuit") drawTraces(sx,sy);      // the wires go under the tiles
+
   for(var i=0;i<GS.plats.length;i++){
     var q=GS.plats[i];
     var isLift = GS.ride && GS.ride.lift===q;
@@ -88,7 +92,9 @@ export function draw(){
       ctx.fillStyle = fork ? (q.v?"rgba(255,177,75,.95)":"rgba(255,177,75,.6)")
                            : (q.v?"rgba(90,209,168,.9)":"rgba(120,136,170,.55)");
     }
-    rr(X-P.platW/2,Y,P.platW,P.platH,4); ctx.fill();
+    var plain = !elev && !q.spr && !q.rat && !q.dn && !q.spk && !q.frag;
+    if(sk.paint && plain && q.v && !fork) paintTile(sk.paint,q,X,Y);   // the skin's own paint
+    else { rr(X-P.platW/2,Y,P.platW,P.platH,4); ctx.fill(); }
     if(q.frag && q.hits!>=1){                       // crack across the tile
       ctx.strokeStyle="rgba(40,20,14,.8)"; ctx.lineWidth=1.6;
       ctx.beginPath();
@@ -255,7 +261,7 @@ export function draw(){
   var s=Math.min(P.platW*0.5,26), sq=Math.max(0,GS.pl.sq);
   var w=s*(1+0.28*sq), h=s*(1-0.28*sq);
   var shake = GS.reject>0 ? Math.sin(GS.reject*90)*5 : 0;
-  var X=sx(GS.pl.x)+shake, Y=sy(GS.pl.y), sk=curSkin();
+  var X=sx(GS.pl.x)+shake, Y=sy(GS.pl.y);
 
   // skin trails: afterimages, stars or rainbow, laid down while airborne
   if(sk.trail){

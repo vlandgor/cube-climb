@@ -52,6 +52,7 @@ export const GS = {
   debris: [] as Debris[],
   puffs: [] as Puff[],
   trail: [] as TrailPoint[],
+  path: [] as Plat[],                      // tiles landed on this run, in order (the Robot skin wires them up)
 
   // revive offer
   revivesLeft: 0,

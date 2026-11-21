@@ -2,6 +2,7 @@ import { GS } from "../core/state";
 import { P } from "../config/params";
 import { save } from "../storage/save";
 import { danger } from "../world/difficulty";
+import { curSkin } from "../render/skins";
 
 // ---------------------------------------------------------------------------
 // AUDIO — everything is synthesised with Web Audio, no files. phones only allow
@@ -81,8 +82,11 @@ const SFX: Record<string, (a?: any, b?: any) => void>={
   crack:  function(){ noise(0.06,{type:"highpass",f:2600,vol:0.13}); noise(0.05,{type:"highpass",f:3200,vol:0.1,delay:0.05}); },
   creak:  function(){ tone(230,0.16,{to:170,type:"sawtooth",vol:0.04}); },
   crumble:function(){ noise(0.38,{type:"lowpass",f:1400,to:260,vol:0.22}); tone(120,0.3,{to:55,vol:0.12}); },
+  // a chime, then soft ticks for the length of the ride that climb or fall with it.
+  // (it used to be one long gliding tone, which players heard as an engine.)
   liftGo: function(up: boolean,dur: number){ tone(660,0.07,{vol:0.07}); tone(up?880:520,0.08,{vol:0.06,delay:0.07});
-                            tone(up?190:420,dur,{to:up?420:190,type:"triangle",vol:0.05,a:0.06}); },
+    var n=Math.max(3,Math.round(dur/0.1));
+    for(var i=1;i<n;i++) tone((up?700:1000)*Math.pow(up?1.035:0.965,i),0.025,{type:"triangle",vol:0.028,delay:0.1+(dur-0.1)*i/n}); },
   liftDing:function(){ tone(880,0.25,{vol:0.09}); tone(1320,0.3,{vol:0.05,delay:0.05}); },
   spike:  function(){ noise(0.12,{type:"highpass",f:4200,vol:0.11}); tone(1500,0.07,{to:2500,type:"square",vol:0.035}); },
   alarm:  function(){ tone(760,0.09,{type:"square",vol:0.075}); tone(760,0.09,{type:"square",vol:0.075,delay:0.17}); },
@@ -99,7 +103,43 @@ const SFX: Record<string, (a?: any, b?: any) => void>={
                       [659,880,1319].forEach(function(f,i){ tone(f,0.3,{vol:0.06,delay:0.25+0.07*i}); }); },
   click:  function(){ tone(620,0.035,{type:"triangle",vol:0.05}); }
 };
-export function sfx(name: string, a?: unknown, b?: unknown){ if(AU.ctx && sfxOn() && SFX[name]) try{ SFX[name](a,b); }catch(e){} }
+// ---- skin voices: a skin with a voice replaces the movement sounds below, and colours
+// the music (see musicTick). anything a voice doesn't define plays the normal sound.
+function chordNow(){ return CHORDS[Math.floor((AU.step%64)/16)]; }
+// bell (Rainbow): climbing plays a melody. every step up is the next note of whatever
+// chord the music is on, three octaves of it; a step down goes back one.
+var stair=0, stairRun=-1;
+function stairStep(by: number){
+  if(GS.gt<stairRun) stair=0;                         // gt restarts each run: so does the melody
+  stairRun=GS.gt; stair=Math.max(0,stair+by);
+  var n=stair%9, ch=chordNow()[1];
+  return ch[n%3]*Math.pow(2,Math.floor(n/3));
+}
+function bell(f: number, vol: number, delay?: number){ tone(f,0.42,{vol:vol,delay:delay}); tone(f*2,0.2,{vol:vol*0.3,delay:delay}); }
+const VOICES: Record<string, Record<string, (a?: any, b?: any) => void>>={
+  bell: {
+    jump:   function(){ bell(stairStep(1),0.085); },
+    launch: function(){ bell(stairStep(1),0.08); bell(stairStep(1),0.08,0.07); },   // a spring spans two steps
+    drop:   function(){ bell(stairStep(-1),0.05); },
+    air:    function(){ var f=stairNote(); tone(f*2,0.3,{vol:0.05}); tone(f*3,0.25,{vol:0.03,delay:0.05}); noise(0.1,{f:5000,to:8000,q:3,vol:0.03}); },
+    land:   function(){ tone(140,0.05,{to:95,vol:0.09}); },
+  },
+  // chip (Robot): 8-bit square-wave bleeps
+  chip: {
+    jump:   function(){ tone(440,0.06,{to:880,type:"square",vol:0.045}); },
+    launch: function(){ [523,659,784,1047].forEach(function(f,i){ tone(f,0.05,{type:"square",vol:0.04,delay:0.035*i}); }); },
+    drop:   function(){ tone(660,0.06,{to:330,type:"square",vol:0.045}); },
+    air:    function(){ tone(880,0.04,{type:"square",vol:0.04}); tone(1320,0.05,{type:"square",vol:0.035,delay:0.045}); },
+    land:   function(){ tone(110,0.04,{type:"square",vol:0.05}); noise(0.02,{type:"highpass",f:5000,vol:0.04}); },
+  },
+};
+function stairNote(){ var n=stair%9, ch=chordNow()[1]; return ch[n%3]*Math.pow(2,Math.floor(n/3)); }
+
+export function sfx(name: string, a?: unknown, b?: unknown){
+  if(!AU.ctx || !sfxOn()) return;
+  var v=curSkin().voice, fn=(v && VOICES[v] && VOICES[v][name]) || SFX[name];
+  if(fn) try{ fn(a,b); }catch(e){}
+}
 
 // music: a soft Am–F–C–G loop at 96 bpm. the melody gets busier and brighter as the
 // danger curve rises, so the calm stretches sound calm.
@@ -114,11 +154,16 @@ function musicTick(){
   while(AU.next < c.currentTime+0.12){
     var s=AU.step%64, bar=Math.floor(s/16), ch=CHORDS[bar], t=AU.next, bus=AU.musLP;
     if(musOn()){
+      // the skin's voice: chip turns bass and melody into square waves, bell rings the
+      // melody an octave up with a long tail
+      var voice=curSkin().voice, chip=voice==="chip", bells=voice==="bell";
       if(s%16===0) ch[1].forEach(function(f){ tone(f,spb*16,{type:"triangle",vol:0.022,a:0.4,bus:bus,at:t}); });
-      if(s%4===0) tone(ch[0],spb*3.5,{type:"sine",vol:0.09,a:0.01,bus:bus,at:t});
+      if(s%4===0) tone(ch[0],spb*3.5,{type:chip?"square":"sine",vol:chip?0.03:0.09,a:0.01,bus:bus,at:t});
       if(Math.random() < 0.18+0.55*dz){
         var nf=ch[1][(Math.random()*3)|0]*(Math.random()<0.5?2:4);
-        tone(nf,spb*1.6,{type:"triangle",vol:0.028,a:0.004,bus:bus,at:t});
+        if(chip) tone(nf,spb*1.2,{type:"square",vol:0.014,a:0.002,bus:bus,at:t});
+        else if(bells) tone(nf*2,spb*5,{type:"sine",vol:0.02,a:0.003,bus:bus,at:t});
+        else tone(nf,spb*1.6,{type:"triangle",vol:0.028,a:0.004,bus:bus,at:t});
       }
       if(dz>0.35 && s%2===0) noise(0.03,{type:"highpass",f:7000,vol:0.012+0.02*dz,bus:bus,at:t});
     }

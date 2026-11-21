@@ -8,6 +8,7 @@ export interface Plat {
   gx: number; gy: number;        // grid cell
   dir: number;                   // direction the staircase was climbing when it was laid
   v: boolean;                    // visited
+  vt?: number;                   // when it was first landed on: skin paint animates in from here
 
   frag?: number; hits?: number; fuse?: number;          // fragile: cracks, then collapses
   spr?: number;                                          // spring: next jump spans two steps
