@@ -7,6 +7,7 @@ import { step } from "./game/sim";
 import { initKeyboard } from "./input/keyboard";
 import { ADS, adsInit } from "./platform/ads";
 import { initNative } from "./platform/native";
+import { initDev } from "./platform/dev";
 import { initCanvas, resize } from "./render/canvas";
 import { draw } from "./render/draw";
 import { $ } from "./ui/dom";
@@ -38,7 +39,7 @@ function loop(ts: number){
   requestAnimationFrame(loop);
 }
 
-initAudio(); initCanvas(); initPad(); initKeyboard(); initMenus(); initNative(); initTuning();
+initAudio(); initCanvas(); initPad(); initKeyboard(); initMenus(); initNative(); initTuning(); initDev();
 resize(); applyTuning();
 // the language decides every menu string, so it is loaded before the first screen shows
 setLocale(save.lang||detect()).then(function(){

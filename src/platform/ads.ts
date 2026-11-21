@@ -2,6 +2,7 @@ import { GS } from "../core/state";
 import { AU } from "../audio/audio";
 import { doRevive } from "../game/run";
 import { $ } from "../ui/dom";
+import { IS_DEV } from "./dev";
 
 // ---------------------------------------------------------------------------
 // ADS — a rewarded ad on the Revive button, inside the Android/iOS app only. in a
@@ -10,10 +11,10 @@ import { $ } from "../ui/dom";
 // ---------------------------------------------------------------------------
 export const ADS={
   // Cube Climb's "Revive" rewarded unit (AdMob -> Apps -> Cube Climb -> Ad units).
-  // for a test build, swap in Google's test unit ca-app-pub-3940256099942544/5224354917
-  // and set testing:true, so you never tap your own live ads.
-  rewardedId: "ca-app-pub-8265696902451604/5048484873",
-  testing: false,
+  // the dev channel (Cube Climb Dev) always uses Google's test unit, so you never tap
+  // your own live ads.
+  rewardedId: IS_DEV ? "ca-app-pub-3940256099942544/5224354917" : "ca-app-pub-8265696902451604/5048484873",
+  testing: IS_DEV,
   ready:false, loading:false, showing:false, earned:false, canRequest:false,
   privacyRequired:false, left:0
 };
