@@ -1,3 +1,4 @@
+import type { Burst } from "../render/burst";
 import type {
   Buffered, Critter, Debris, Foe, GameState, Intent, Plat, Player, Puff, Ride, Tip, TrailPoint,
 } from "./types";
@@ -51,6 +52,7 @@ export const GS = {
   critNext: 0,
   debris: [] as Debris[],
   puffs: [] as Puff[],
+  bursts: [] as Burst[],                   // skins' landing particles (render/burst.ts)
   trail: [] as TrailPoint[],
   path: [] as Plat[],                      // tiles landed on this run, in order (the Robot skin wires them up)
 
