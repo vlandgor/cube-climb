@@ -7,6 +7,7 @@ import { learnedAirJump } from "./airLesson";
 import { exec, held, resolve } from "./movement";
 import { endRun, noteLanding, offerRevive } from "./run";
 import { curSkin } from "../render/skins";
+import { spawnBurst } from "../render/burst";
 import { save, writeSave } from "../storage/save";
 import { syncPad } from "../ui/pad";
 import { checkUnlocks } from "../ui/skins";
@@ -70,7 +71,12 @@ export function step(dt: number){
       var q=GS.plats[i];
       if(q.y>py+40 || q.y<GS.pl.y-240) continue;           // cheap window
       if(py>=q.y-0.5 && GS.pl.y<=q.y && Math.abs(GS.pl.x-q.x)<=P.platW*0.5+2){
-        GS.pl.y=q.y; GS.pl.vy=0; GS.pl.vx=0; GS.pl.ground=true; GS.pl.p=q; GS.pl.sq=1.2;
+        // gravity keeps pulling while you stand, so this also runs on every step you stay
+        // on a tile: lifts, fuses and critters rely on that. only a real landing (not
+        // already standing here) makes a sound, squashes the cube and throws particles.
+        var landed = !(GS.pl.ground && GS.pl.p===q);
+        GS.pl.y=q.y; GS.pl.vy=0; GS.pl.vx=0; GS.pl.ground=true; GS.pl.p=q;
+        if(landed) GS.pl.sq=1.2;
         if(!q.v) q.vt=GS.gt;
         q.lt=GS.gt;
         q.v=true;
@@ -79,14 +85,8 @@ export function step(dt: number){
         if(q.spk && GS.gt<q.spUntil!){ die("spiked"); return; }
         if(GS.pl.y>GS.maxY) GS.maxY=GS.pl.y;
         var h=Math.round(GS.pl.y/P.stepY); if(h>GS.best){ GS.best=h; checkUnlocks(); }
-        var sk=curSkin();
-        if(sk.land) for(var spk2=0;spk2<6;spk2++){                // gold & diamond: sparkle on landing
-          var an=Math.PI*(0.15+0.7*Math.random());
-          GS.debris.push({x:GS.pl.x,y:GS.pl.y+2,w:3.5,vx:Math.cos(an)*P.stepX*(Math.random()<0.5?-1.6:1.6),
-                       vy:Math.sin(an)*P.stepY*3.5,rot:0,vr:6,life:0.35,col:sk.land});
-        }
         GS.pl.boost = q.spr ? 1 : 0;
-        sfx(q.spr ? "charge" : "land");
+        if(landed){ spawnBurst(curSkin().burst, GS.pl.x, GS.pl.y); sfx(q.spr ? "charge" : "land"); }
         noteLanding(q);
         if(GS.pl.gapTo===q.gx+","+q.gy) learnedAirJump();
         GS.pl.gapTo=null;

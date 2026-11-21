@@ -7,6 +7,7 @@ import { zoom } from "./camera";
 import { ctx } from "./canvas";
 import { curSkin, paintCube } from "./skins";
 import { drawPath, paintTile } from "./paint";
+import { drawBursts } from "./burst";
 import { allBest } from "../storage/save";
 import { syncPad } from "../ui/pad";
 import { danger } from "../world/difficulty";
@@ -242,6 +243,7 @@ export function draw(){
     ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.ellipse(sx(pf.x),sy(pf.y)-6,pf.r,pf.r*0.45,0,0,6.3); ctx.stroke();
   }
+  drawBursts(sx,sy);
 
   // the air-jump lesson: which button glows, and a ghost doing the move from your tile
   var hint=djHint(), hb=hint?hint.btn:null;

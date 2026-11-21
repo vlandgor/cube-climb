@@ -24,7 +24,7 @@ export function reset(){
   GS.tips.push(newTip(root, 1, rnd(P.segMin,P.segMax), [root]));
   GS.pl={x:0,y:0,vx:0,vy:0,ground:true,p:root,sq:0,boost:0,djLeft:P.dj?P.djMax:0};
   GS.best=0; GS.maxY=0; GS.autoT=-1; GS.flash=0; GS.buf=null; GS.reject=0;
-  GS.gt=0; GS.fuses=[]; GS.debris=[]; GS.puffs=[]; GS.clearQ=[]; GS.ride=null; GS.lastLift=null;
+  GS.gt=0; GS.fuses=[]; GS.debris=[]; GS.puffs=[]; GS.bursts=[]; GS.clearQ=[]; GS.ride=null; GS.lastLift=null;
   GS.turns=[]; GS.foes=[]; GS.critters=[]; GS.critNext=0; GS.taught={};
   GS.lastIntent={dir:1,up:true};
   held["-1"]=held["1"]=false; consumed["-1"]=consumed["1"]=false;
