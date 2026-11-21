@@ -16,6 +16,8 @@ android {
         versionCode Integer.parseInt(env("VERSION_CODE", "1"))
         versionName env("VERSION_NAME", "1.0.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // the launcher name; the dev build overrides it so it can't be mistaken for the real app
+        manifestPlaceholders = [appLabel: "@string/app_name"]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -39,6 +41,19 @@ android {
             if (releaseKeystore) {
                 signingConfig signingConfigs.release
             }
+        }
+        // "Cube Climb Dev": installs next to the real app and loads the game from GitHub Pages,
+        // so every push to main reaches the phone the next time the app opens. Test ads only.
+        // Its own files live in src/dev/; tools/dev-shell.mjs writes its Capacitor config.
+        dev {
+            initWith release
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            debuggable true                       // chrome://inspect works on the WebView
+            manifestPlaceholders = [appLabel: "Cube Climb Dev"]
+            // the same key on every build, so a new dev APK installs over the old one
+            signingConfig releaseKeystore ? signingConfigs.release : signingConfigs.debug
+            matchingFallbacks = ["release"]
         }
     }
 }

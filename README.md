@@ -33,7 +33,7 @@ On a desktop, the keys are Q ↖ · E ↗ · A ↙ · D ↘, Esc pauses, and R r
 | `src/render/` | Canvas setup, camera, skins, drawing a frame. |
 | `src/ui/` | Menus, pad buttons, skins screen, tuning panel, styles. |
 | `src/audio/` | Synthesised sound effects and music. |
-| `src/platform/` | Capacitor glue: AdMob rewarded ads, the Android back button, app pause/resume. |
+| `src/platform/` | Capacitor glue: AdMob rewarded ads, the Android back button, app pause/resume, the dev channel. |
 | `src/storage/` | The save (best height, skins, settings) in localStorage. |
 | `docs/` | Design documents. `game-design-v0.2.md` predates most features and is due an update. |
 
@@ -66,6 +66,38 @@ version name. The version code goes up automatically with every run, as Play req
 The keystore never goes in the repository; `.gitignore` blocks it.
 
 **Building locally** needs Node 22 and JDK 21: `npm ci`, then `npm run android:debug`.
+
+### Cube Climb Dev
+
+A second app for testing on a phone. It's named **Cube Climb Dev**
+(`com.playcebo.cubeclimb.dev`), so it installs alongside the real app and can't be
+confused with it. Instead of the bundled game it loads the newest build from
+**https://vlandgor.github.io/cube-climb/**:
+
+- Every push to `main` redeploys that page (`.github/workflows/dev-web.yml`). The next
+  time the app opens, it runs the new commit; no reinstall needed. If it was only in the
+  background, it reloads on resume when a newer build is live, but only on the main menu,
+  never mid-run.
+- The main menu shows `DEV · <commit>`, so you can see which build is running.
+- Test ads only: Google's sample AdMob app ID (`android/app/src/dev/res/values/strings.xml`)
+  and test rewarded unit (`ADS.rewardedId` picks it when `VITE_CHANNEL=dev`).
+- Offline, it shows a small "Retry" page instead of the game.
+- Its saves are separate from the real app's.
+
+**Install it** from the fixed link
+<https://github.com/vlandgor/cube-climb/releases/download/dev/cube-climb-dev.apk>. The
+*Android build* workflow rebuilds it on every push to `main` and publishes it to the `dev`
+pre-release. You only need a new APK when the native side changes (plugins, permissions,
+icons, `MainActivity`). It's signed with the upload key once the signing secrets are set,
+so a new dev APK installs over the old one.
+
+How it's built: the `dev` build type in `android/app/build.gradle` sets the name and ID,
+and `tools/dev-shell.mjs` writes its Capacitor config (the `server.url`) and offline page
+into `android/app/src/dev/assets/` after `cap sync`. Locally: `npm run android:dev`;
+`DEV_URL=http://<your-ip>:5173/ npm run android:dev` points it at your `npm run dev`
+server instead.
+
+**One-time setup:** Settings → Pages → Build and deployment → Source: **GitHub Actions**.
 
 ## Languages
 
@@ -117,10 +149,9 @@ The build uses Cube Climb's own AdMob IDs:
 | `android/app/src/main/res/values/strings.xml` → `admob_app_id` | AdMob **app** ID `ca-app-pub-8265696902451604~7998740981` |
 | `src/platform/ads.ts` → `ADS.rewardedId` | **Revive** rewarded unit `ca-app-pub-8265696902451604/5048484873` |
 
-**Never tap live ads on your own builds**: AdMob treats it as invalid traffic. Either
-register your phones as test devices (AdMob → Settings → Test devices), or for a test
-build swap in Google's test unit `ca-app-pub-3940256099942544/5224354917` and set
-`ADS.testing` to `true`.
+**Never tap live ads on your own builds**: AdMob treats it as invalid traffic. Test on
+**Cube Climb Dev**, which always uses Google's test ads, or register your phones as test
+devices (AdMob → Settings → Test devices).
 
 Every build reports which kind it contains ("TEST ads" or "real ad unit") in the
 run's APK check.

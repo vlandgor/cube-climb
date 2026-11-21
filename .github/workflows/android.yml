@@ -2,6 +2,8 @@
 #
 # Always: a debug APK you can install directly on a phone.
 # When signing secrets are set: a signed release AAB (for Google Play) and APK.
+# Always: "Cube Climb Dev", which loads the game from GitHub Pages (see dev-web.yml). On
+# main it is published as the `dev` pre-release, at a download link that never changes.
 #
 # Secrets (Settings > Secrets and variables > Actions):
 #   ANDROID_KEYSTORE_BASE64    your upload keystore, base64-encoded
@@ -24,6 +26,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write          # publishing the dev APK to the `dev` pre-release
     env:
       KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
@@ -116,6 +120,56 @@ jobs:
           path: |
             android/app/build/outputs/bundle/release/*.aab
             android/app/build/outputs/apk/release/*.apk
+
+      # same native app, but it opens https://vlandgor.github.io/cube-climb/ instead of the
+      # bundled game, so pushes to main reach it without reinstalling. signed with the upload
+      # key when the secrets are set, so each new dev APK installs over the last one
+      - name: Build Cube Climb Dev APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          node ../tools/dev-shell.mjs
+          ./gradlew assembleDev --no-daemon
+
+      - name: Check the dev APK
+        run: |
+          APK=$(ls android/app/build/outputs/apk/dev/*.apk | head -1)
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          BADGE=$("$AAPT" dump badging "$APK")
+          echo "$BADGE" | grep -q "package: name='com.playcebo.cubeclimb.dev'" || { echo "::error title=Dev APK check::Wrong package name"; exit 1; }
+          echo "$BADGE" | grep -q "application-label:'Cube Climb Dev'" || { echo "::error title=Dev APK check::App is not named Cube Climb Dev"; exit 1; }
+          URL=$(unzip -p "$APK" assets/capacitor.config.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log((JSON.parse(s).server||{}).url||''))")
+          [ -n "$URL" ] || { echo "::error title=Dev APK check::No server url, the dev app would play the bundled game"; exit 1; }
+          unzip -l "$APK" | grep -q "assets/public/offline.html" || { echo "::error title=Dev APK check::offline.html is missing"; exit 1; }
+          "$AAPT" dump --values resources "$APK" | grep -A1 "string/admob_app_id" | grep -q "ca-app-pub-3940256099942544~" \
+            || { echo "::error title=Dev APK check::Dev APK is not using the test AdMob app id"; exit 1; }
+          SIGNED="debug key"; [ -n "$KEYSTORE_B64" ] && SIGNED="upload key"
+          cp "$APK" "$RUNNER_TEMP/cube-climb-dev.apk"
+          echo "::notice title=Dev APK check::$(basename "$APK"): Cube Climb Dev, loads $URL, test ads, signed with the $SIGNED, $(du -h "$APK" | cut -f1)"
+
+      - name: Upload dev APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: cube-climb-dev-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: android/app/build/outputs/apk/dev/*.apk
+
+      # one fixed link for the phone:
+      # https://github.com/vlandgor/cube-climb/releases/download/dev/cube-climb-dev.apk
+      - name: Publish the dev APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f dev && git push -f origin refs/tags/dev
+          NOTES="Cube Climb Dev, built from ${GITHUB_SHA::7} (${VERSION_NAME}, code ${VERSION_CODE}).
+
+          Install it once. It loads the newest build from main every time it opens, so you only need a new APK when the Android side changes (plugins, permissions, icons). Test ads only."
+          gh release view dev >/dev/null 2>&1 || gh release create dev --prerelease --title "Cube Climb Dev" --notes "$NOTES"
+          gh release upload dev "$RUNNER_TEMP/cube-climb-dev.apk" --clobber
+          gh release edit dev --prerelease --notes "$NOTES"
 
       - name: Remove keystore
         if: always()
