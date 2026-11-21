@@ -20,7 +20,7 @@ import type { Key } from "../i18n/format";
 // ---------------------------------------------------------------------------
 export function reset(){
   GS.plats=[]; GS.pmap={}; GS.tips=[]; GS.holes={};
-  var root=addPlat(0,0,1); root.v=true;
+  var root=addPlat(0,0,1); root.v=true; GS.path=[root];
   GS.tips.push(newTip(root, 1, rnd(P.segMin,P.segMax), [root]));
   GS.pl={x:0,y:0,vx:0,vy:0,ground:true,p:root,sq:0,boost:0,djLeft:P.dj?P.djMax:0};
   GS.best=0; GS.maxY=0; GS.autoT=-1; GS.flash=0; GS.buf=null; GS.reject=0;

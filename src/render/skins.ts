@@ -2,24 +2,27 @@ import { save } from "../storage/save";
 import { IS_DEV } from "../platform/dev";
 
 // ---------------------------------------------------------------------------
-// SKINS — cosmetic only. unlocked by reaching a height in a single run. none use the
-// walker's red or the faller's cream, so a cube is never misread at speed.
+// SKINS — cosmetic only: a skin changes how the climb looks and sounds, never how it
+// plays. unlocked by reaching a height in a single run. none use the walker's red or
+// the faller's cream, so a cube is never misread at speed.
 // ---------------------------------------------------------------------------
 export interface Skin {
   id: string;           // also its name key: skin.<id>
   req: number;          // height to reach in one run to unlock it
   trail?: string;       // afterimage while airborne: ghost | stars | rainbow
   land?: string;        // "r,g,b" sparkle on landing
+  paint?: string;       // how plain tiles you've stood on look (render/paint.ts): rainbow | circuit
+  voice?: string;       // movement sounds and a music voice (audio/audio.ts): bell | chip
 }
 export const SKINS: Skin[]=[
   {id:"classic", req:0},
   {id:"shades",  req:25},
   {id:"grape",   req:50},
   {id:"ghost",   req:100,  trail:"ghost"},
-  {id:"robot",   req:150},
+  {id:"robot",   req:150,  paint:"circuit", voice:"chip", land:"120,240,255"},
   {id:"gold",    req:250,  land:"255,214,96"},
   {id:"galaxy",  req:400,  trail:"stars"},
-  {id:"rainbow", req:600,  trail:"rainbow"},
+  {id:"rainbow", req:600,  trail:"rainbow", paint:"rainbow", voice:"bell"},
   {id:"diamond", req:1000, land:"190,240,255"}
 ];
 function skinById(id: string){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
