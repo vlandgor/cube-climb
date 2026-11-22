@@ -31,6 +31,8 @@ const m: Messages = {
   "set.privacy": "Privacidade dos anúncios",
   "set.privacySub": "mude como os anúncios usam seus dados",
   "set.open": "Abrir",
+  "set.policy": "Política de privacidade",
+  "set.terms": "Termos de uso",
   "set.best": "Melhor altura",
   "set.bestSteps": { one: "{n} degrau", many: "{n} de degraus", other: "{n} degraus" },
   "set.bestNone": "nenhuma ainda",

@@ -31,6 +31,8 @@ const m: Messages = {
   "set.privacy": "広告のプライバシー",
   "set.privacySub": "広告によるデータの使われ方を変更",
   "set.open": "開く",
+  "set.policy": "プライバシーポリシー",
+  "set.terms": "利用規約",
   "set.best": "最高の高さ",
   "set.bestSteps": { other: "{n} 段" },
   "set.bestNone": "まだなし",

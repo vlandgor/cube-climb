@@ -43,6 +43,8 @@ export const en = {
   "set.privacy": "Ad privacy choices",
   "set.privacySub": "change how ads use your data",
   "set.open": "Open",
+  "set.policy": "Privacy policy",
+  "set.terms": "Terms of use",
   "set.best": "Best height",
   "set.bestSteps": { one: "{n} step", other: "{n} steps" },
   "set.bestNone": "none yet",
