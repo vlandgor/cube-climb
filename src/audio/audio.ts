@@ -248,9 +248,36 @@ function newSong(){
   out[out.length-1]=Math.round(out[out.length-2]/n)*n;             // land home on A
   song.notes=out; song.i=0;
 }
+// TEST: famous tunes instead of generated ones, all public domain. one plays all the way
+// through, then a random other one. FAMOUS=false goes back to generated songs.
+const FAMOUS = true;
+const TUNES: [string, string][]=[
+  ["Ode to Joy", "E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4 D4 D4 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4 C4 C4 D4 D4 E4 C4 D4 E4 F4 E4 C4 D4 E4 F4 E4 D4 C4 D4 G3 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4 C4 C4"],
+  ["Twinkle Twinkle", "C4 C4 G4 G4 A4 A4 G4 F4 F4 E4 E4 D4 D4 C4 G4 G4 F4 F4 E4 E4 D4 G4 G4 F4 F4 E4 E4 D4 C4 C4 G4 G4 A4 A4 G4 F4 F4 E4 E4 D4 D4 C4"],
+  ["Frère Jacques", "C4 D4 E4 C4 C4 D4 E4 C4 E4 F4 G4 E4 F4 G4 G4 A4 G4 F4 E4 C4 G4 A4 G4 F4 E4 C4 C4 G3 C4 C4 G3 C4"],
+  ["Für Elise", "E5 D#5 E5 D#5 E5 B4 D5 C5 A4 C4 E4 A4 B4 E4 G#4 B4 C5 E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4 C4 E4 A4 B4 E4 C5 B4 A4"],
+  ["Korobeiniki", "E5 B4 C5 D5 C5 B4 A4 A4 C5 E5 D5 C5 B4 C5 D5 E5 C5 A4 A4 D5 F5 A5 G5 F5 E5 C5 E5 D5 C5 B4 B4 C5 D5 E5 C5 A4 A4"],
+  ["Greensleeves", "A4 C5 D5 E5 F5 E5 D5 B4 G4 A4 B4 C5 A4 A4 G#4 A4 B4 G#4 E4 A4 C5 D5 E5 F5 E5 D5 B4 G4 A4 B4 C5 B4 A4 G#4 F#4 G#4 A4 A4"],
+  ["Jingle Bells", "E4 E4 E4 E4 E4 E4 E4 G4 C4 D4 E4 F4 F4 F4 F4 F4 E4 E4 E4 E4 D4 D4 E4 D4 G4 E4 E4 E4 E4 E4 E4 E4 G4 C4 D4 E4 F4 F4 F4 F4 F4 E4 E4 E4 G4 G4 F4 D4 C4"],
+  ["Hall of the Mountain King", "A3 B3 C4 D4 E4 C4 E4 D#4 B3 D#4 D4 A#3 D4 A3 B3 C4 D4 E4 C4 E4 A4 G4 E4 C4 E4 G4"],
+  ["Mary Had a Little Lamb", "E4 D4 C4 D4 E4 E4 E4 D4 D4 D4 E4 G4 G4 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4"],
+];
+const PC: Record<string, number>={C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
+function midi(n: string){ var m=/^([A-G]#?)(\d)$/.exec(n)!; return 12*(+m[2]+1)+PC[m[1]]; }
+var tune = { notes: [] as number[], i: 0, last: -1 };
+function nextTune(){
+  var k: number; do{ k=(Math.random()*TUNES.length)|0; }while(k===tune.last && TUNES.length>1);
+  tune.last=k;
+  var ms=TUNES[k][1].split(" ").map(midi), lo=Math.min.apply(null,ms), sh=0;
+  while(lo+sh<69) sh+=12; while(lo+sh>=81) sh-=12;                 // lowest note between A4 and G#5
+  tune.notes=ms.map(function(m){ return 440*Math.pow(2,(m+sh-69)/12); }); tune.i=0;
+  console.log("[melody] now playing: "+TUNES[k][0]);
+}
+
 function nextNote(){
-  if(GS.gt<song.run) song.notes=[];                                // gt restarts each run
+  if(GS.gt<song.run){ song.notes=[]; tune.notes=[]; }              // gt restarts each run
   song.run=GS.gt;
+  if(FAMOUS){ if(tune.i>=tune.notes.length) nextTune(); return tune.notes[tune.i++]; }
   if(song.i>=song.notes.length) newSong();
   return scaleHz(song.notes[song.i++]);
 }
