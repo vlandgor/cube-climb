@@ -1,5 +1,4 @@
 import { GS } from "../core/state";
-import type { Plat } from "../core/types";
 import { P } from "../config/params";
 import { save } from "../storage/save";
 import { danger } from "../world/difficulty";
@@ -197,59 +196,105 @@ const VOICES: Record<string, Record<string, Fn>>={
   },
 };
 
-// ---- MELODY (experiment): each tile owns a note. your first landing on a tile gives it
-// the next note of a generated tune; landing on it again replays that note, so a fall
-// back down replays your climb in reverse, like piano keys. MELODY=false: old sounds.
+// ---- MELODY (experiment): every jump plays the next note of a generated tune, like
+// tapping piano tiles: jumps, drops, air jumps, back-hops and springs all count. each skin
+// plays the notes with its own instrument (INSTR). landings keep their usual sounds.
+// MELODY=false brings back the old movement sounds.
 const MELODY = true;
 
-// A minor pentatonic (A C D E G): every note fits all four chords of the Am–F–C–G
-// music, so a random tune can't hit a sour note.
-const PENTA = [0, 3, 5, 7, 10];
-const MEL_ROOT = 440, MEL_LOW = 0, MEL_HIGH = 11;       // ~2 octaves up from A4
-function stepHz(d: number){ var o=Math.floor(d/5), i=((d%5)+5)%5; return MEL_ROOT*Math.pow(2, o+PENTA[i]/12); }
+// scales on A, so every tune sits in key with the Am–F–C–G music. pentatonic most of the
+// time (it can't clash); natural minor now and then, for more colour.
+const SCALES = [[0,3,5,7,10], [0,3,5,7,10], [0,2,3,5,7,8,10]];
+const MEL_ROOT = 440;
 function pick<T>(a: T[]): T { return a[(Math.random()*a.length)|0]; }
-function clampStep(d: number){ return Math.max(MEL_LOW, Math.min(MEL_HIGH, d)); }
-function homeStep(d: number){ return clampStep(Math.round(d/5)*5); }   // nearest A
 
-// tunes come in pairs of 8-note phrases, like a song: a "question" (a 4-note motif, then
-// the same motif shifted, left open), then an "answer" (the same phrase, but it ends on
-// A). the repetition is what makes it a melody and not random notes.
-var mel = { cur: [] as number[], i: 0, n: 0, prev: [] as number[], base: 5, run: -1 };
-function makePhrase(): number[]{
-  mel.n++;
-  if(mel.n%2===0 && mel.prev.length){
-    var p=mel.prev.slice(); p[6]=clampStep(p[6]+pick([-1,1])); p[7]=homeStep(p[6]); return p;
-  }
-  var m=[0], s=0;
-  for(var k=1;k<4;k++){ s+=pick([-2,-1,-1,1,1,2,0]); m.push(s); }
-  var shift=pick([-2,-1,1,2]);
-  var q=m.map(function(x){ return clampStep(mel.base+x); })
-         .concat(m.map(function(x){ return clampStep(mel.base+shift+x); }));
-  mel.prev=q; mel.base=clampStep(mel.base+pick([-2,-1,0,1,2]));   // the next tune wanders a little
-  return q;
+// a song is 4 phrases of 8 notes in a random form (AABA, ABAB...). a phrase is a 4-note
+// motif plus a reworked copy of it (shifted, flipped or reversed). a repeated letter
+// replays its phrase with a new ending, and the song always ends on A. then a new song
+// starts with a new scale, register and form, so it never settles into one tune.
+var song = { scale: SCALES[0], notes: [] as number[], i: 0, run: -1 };
+function scaleHz(d: number){
+  var sc=song.scale, n=sc.length, o=Math.floor(d/n), i=((d%n)+n)%n;
+  return MEL_ROOT*Math.pow(2, o+sc[i]/12);
 }
-function melodyLand(){
-  if(GS.gt<mel.run){ mel.cur=[]; mel.i=0; mel.n=0; mel.prev=[]; mel.base=5; }   // gt restarts each run
-  mel.run=GS.gt;
-  var q=GS.pl.p as (Plat & { mel?: number }) | null, fresh=!q || q.mel===undefined, d: number;
-  if(fresh){
-    if(mel.i>=mel.cur.length){ mel.cur=makePhrase(); mel.i=0; }
-    d=mel.cur[mel.i++]; if(q) q.mel=d;
-  } else d=q!.mel!;
-  var f=stepHz(d), v=fresh ? 0.1 : 0.065;              // tiles you've played are softer
-  tone(f,0.55,{type:"triangle",vol:v,a:0.003});        // the note
-  tone(f*2,0.22,{vol:v*0.3,a:0.002});                  // a little shine on top
-  tone(130,0.04,{to:85,vol:0.05});                     // a soft touch of the landing
+function motif(): number[]{
+  var style=pick(["walk","walk","leap","run","pedal","repeat"]), m=[0], s=0, k: number;
+  if(style==="walk")   for(k=1;k<4;k++){ s+=pick([-2,-1,-1,1,1,2]); m.push(s); }
+  if(style==="leap")   for(k=1;k<4;k++){ s+=pick([-3,-2,2,3]); m.push(s); }
+  if(style==="run"){   var dir=pick([-1,1]); for(k=1;k<4;k++) m.push(k*dir); }
+  if(style==="pedal"){ var hi=pick([2,3,4,-2]); m=[0,hi,0,hi+pick([-1,1])]; }
+  if(style==="repeat"){ var mv=pick([-2,-1,1,2]); m=[0,0,mv,mv+pick([-1,0,1])]; }
+  return m;
+}
+function phrase(base: number): number[]{
+  var m=motif(), how=pick(["shift","shift","flip","reverse"]), m2: number[];
+  if(how==="shift"){ var sh=pick([-2,-1,1,2,3]); m2=m.map(function(x){ return x+sh; }); }
+  else if(how==="flip") m2=m.map(function(x){ return -x; });
+  else m2=m.slice().reverse();
+  return m.concat(m2).map(function(x){ return x+base; });
+}
+function newSong(){
+  song.scale=pick(SCALES);
+  var n=song.scale.length, lo=0, hi=n*2;                          // two octaves up from A4
+  var form=pick(["AABA","ABAB","AABB","ABAC","ABBA"]), made: Record<string, number[]>={}, base=pick([2,3,4,5,6]);
+  var out: number[]=[];
+  for(var j=0;j<form.length;j++){
+    var L=form[j], ph: number[];
+    if(made[L]){ ph=made[L].slice(); ph[6]+=pick([-1,1]); ph[7]=ph[6]+pick([-1,0,1]); }
+    else { ph=phrase(base); made[L]=ph; base+=pick([-2,-1,1,2]); }
+    out=out.concat(ph);
+  }
+  out=out.map(function(d){ while(d<lo) d+=n; while(d>hi) d-=n; return d; });
+  out[out.length-1]=Math.round(out[out.length-2]/n)*n;             // land home on A
+  song.notes=out; song.i=0;
+}
+function nextNote(){
+  if(GS.gt<song.run) song.notes=[];                                // gt restarts each run
+  song.run=GS.gt;
+  if(song.i>=song.notes.length) newSong();
+  return scaleHz(song.notes[song.i++]);
+}
+
+// each skin's instrument. v is the loudness, about 0.1.
+type Instr = { note: (f: number, v: number) => void, land?: Fn };
+const INSTR: Record<string, Instr>={
+  // Classic: a soft pluck
+  classic: { note: function(f,v){ tone(f,0.5,{type:"triangle",vol:v,a:0.003}); tone(f*2,0.2,{vol:v*0.3}); } },
+  // Shades: warm and round, with a soft low octave under it
+  lofi:    { note: function(f,v){ tone(f,0.45,{vol:v*0.9,a:0.02}); tone(f/2,0.35,{vol:v*0.35,a:0.02}); } },
+  // Grape: bubbles that bend up into the note
+  bloop:   { note: function(f,v){ tone(f*0.6,0.16,{to:f,vol:v}); tone(f,0.18,{vol:v*0.5,delay:0.1}); } },
+  // Ghost: breathy, and it comes back once as a faint echo
+  airy:    { note: function(f,v){ echo(function(d,k){ tone(f,0.5,{vol:v*0.8*k,a:0.04,delay:d}); noise(0.12,{f:f*2,q:6,vol:0.03*k,delay:d}); }); } },
+  // Robot: 8-bit square wave with a quick octave blip
+  chip:    { note: function(f,v){ tone(f,0.12,{type:"square",vol:v*0.45}); tone(f*2,0.05,{type:"square",vol:v*0.25,delay:0.12}); } },
+  // Gold: a coin: a short tick, then the note a fifth up
+  coin:    { note: function(f,v){ tone(f,0.07,{type:"square",vol:v*0.35}); tone(f*1.5,0.3,{vol:v*0.7,delay:0.06}); }, land: function(){ SFX.land(); } },
+  // Galaxy: a celesta, an octave up
+  chime:   { note: function(f,v){ tone(f*2,0.6,{vol:v*0.6}); tone(f*4,0.25,{type:"triangle",vol:v*0.15}); }, land: function(){ SFX.land(); } },
+  // Rainbow: a bell, with the off-key overtone real bells have
+  bell:    { note: function(f,v){ tone(f,0.8,{vol:v*0.8}); tone(f*2,0.4,{vol:v*0.3}); tone(f*2.76,0.25,{vol:v*0.12}); } },
+  // Diamond: glassy pings, high and short
+  glass:   { note: function(f,v){ tone(f*2,0.3,{vol:v*0.6}); tone(f*3,0.18,{vol:v*0.2,delay:0.005}); tone(f*6,0.06,{vol:v*0.08}); } },
+};
+const NOTE_SOUNDS: Record<string, number>={ jump:1, drop:0.8, back:0.9, air:1, launch:1 };
+
+function playNote(name: string, voice?: string){
+  var ins=INSTR[voice||"classic"]||INSTR.classic, v=0.1*NOTE_SOUNDS[name];
+  ins.note(nextNote(), v);
+  if(name==="launch")                                              // a spring spans two steps: two notes
+    setTimeout(function(){ try{ ins.note(nextNote(), v*0.9); }catch(e){} }, 80);
 }
 
 export function sfx(name: string, a?: unknown, b?: unknown){
   if(!AU.ctx || !sfxOn()) return;
   var v=curSkin().voice;
   if(MELODY){
-    if(name==="land"){ try{ melodyLand(); }catch(e){} return; }
-    if(name==="charge") try{ melodyLand(); }catch(e){}           // springs play their note too
-    // Rainbow already plays notes on jumps: one tune at a time
-    if(v==="bell" && (name==="jump" || name==="drop" || name==="launch")) v=undefined;
+    if(NOTE_SOUNDS[name]){
+      try{ playNote(name,v); }catch(e){}
+      return;
+    }
+    if(name==="land"){ var L=INSTR[v||"classic"]; if(L && L.land){ try{ L.land(); }catch(e){} return; } }
   }
   var fn=(v && VOICES[v] && VOICES[v][name]) || SFX[name];
   if(fn) try{ fn(a,b); }catch(e){}
