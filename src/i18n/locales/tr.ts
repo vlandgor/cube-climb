@@ -31,6 +31,8 @@ const m: Messages = {
   "set.privacy": "Reklam gizliliği",
   "set.privacySub": "reklamların verilerini nasıl kullandığını değiştir",
   "set.open": "Aç",
+  "set.policy": "Gizlilik politikası",
+  "set.terms": "Kullanım koşulları",
   "set.best": "En iyi yükseklik",
   "set.bestSteps": { one: "{n} basamak", other: "{n} basamak" },
   "set.bestNone": "henüz yok",

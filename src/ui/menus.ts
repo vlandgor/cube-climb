@@ -47,6 +47,17 @@ export function initMenus(){
   tap("bAgain", startRun);
   tap("bMenu2", goMenu);
   tap("bRevive", onReviveTap);
+  // privacy policy and terms. Inside the app, leaving the app's own pages makes Capacitor
+  // open the phone's browser; in a plain browser a new tab keeps the game where it was.
+  ["lnkPrivacy","lnkTerms"].forEach(function(id){
+    var a=$(id) as HTMLAnchorElement;
+    a.addEventListener("click",function(e: Event){
+      e.preventDefault(); sfx("click");
+      var C=window.Capacitor;
+      if(C && C.isNativePlatform && C.isNativePlatform()) window.location.href=a.href;
+      else window.open(a.href,"_blank","noopener");
+    });
+  });
   tap("bAdPrivacy", function(){ var A=adMob(); if(A) A.showPrivacyOptionsForm().catch(function(){}); });
   tap("bNoRev", function(){ if(GS.offerOn) endRun(); });
   // leaving the app mid-run pauses it

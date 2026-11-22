@@ -31,6 +31,8 @@ const m: Messages = {
   "set.privacy": "Confidentialité des pubs",
   "set.privacySub": "choisis comment les pubs utilisent tes données",
   "set.open": "Ouvrir",
+  "set.policy": "Politique de confidentialité",
+  "set.terms": "Conditions d'utilisation",
   "set.best": "Meilleure hauteur",
   "set.bestSteps": { one: "{n} marche", many: "{n} de marches", other: "{n} marches" },
   "set.bestNone": "aucune pour l’instant",
